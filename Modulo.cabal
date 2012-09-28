@@ -1,0 +1,31 @@
+
+name:           Modulo
+version:        0.5
+cabal-version:  >= 0.14
+build-type:     Simple
+author:         Hans Hoglund
+synopsis:       Modular C code generator
+category:       Language, FFI
+tested-with:    GHC
+
+
+description: 
+    Modulo is a tool that generates modular, standard C code according to module descriptors
+    and vice versa. Extensions will be able to generate language bindings for various languages
+    including Haskell and Common Lisp.
+    
+    See also Typo.
+
+library                    
+    build-depends: base, semigroups, language-c
+    hs-source-dirs: src
+    exposed-modules:
+        Language.Modulo
+        Language.Modulo.C
+        -- Language.Modulo.Haskell
+        -- Language.Modulo.Lisp
+
+executable "modulo"
+    hs-source-dirs: src
+    main-is: Main.hs
+    
