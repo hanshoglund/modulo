@@ -1,15 +1,11 @@
 
 {-# LANGUAGE DisambiguateRecordFields, TypeFamilies,
-    StandaloneDeriving, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving
-    #-}
+    StandaloneDeriving, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving #-}
 
 -------------------------------------------------------------------------------------
 -- |
--- Module      : Language.Modulo
 -- Copyright   : (c) Hans Hoglund 2012
---
 -- License     : BSD-style
---
 -- Maintainer  : hans@hanshoglunds.se
 -- Stability   : experimental
 -- Portability : GHC

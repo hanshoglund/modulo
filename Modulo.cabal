@@ -17,13 +17,17 @@ description:
     See also Typo.
 
 library                    
-    build-depends: base, semigroups, language-c
+    build-depends: 
+        base, semigroups, 
+        parsec, 
+        language-c, haskell-src, atto-lisp
     hs-source-dirs: src
     exposed-modules:
         Language.Modulo
         Language.Modulo.C
-        -- Language.Modulo.Haskell
-        -- Language.Modulo.Lisp
+        Language.Modulo.Haskell
+        Language.Modulo.Lisp
+        Language.Modulo.Parser
 
 executable "modulo"
     hs-source-dirs: src
