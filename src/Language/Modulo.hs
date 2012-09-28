@@ -18,12 +18,11 @@
 module Language.Modulo (
         Module(..),
         ModuleName(..),
+        getModuleNameParts,
         ModuleDecl(..),
         Value(..),
         Type(..),
-        PrimType(..),
-        
-        testModule,
+        PrimType(..),        
   ) where
       
 import Data.List.NonEmpty ( NonEmpty(..) )
@@ -31,12 +30,15 @@ import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
 data Module 
-    = Module ModuleName [ModuleName] [ModuleDecl] -- name imports decls
+    = Module { modName :: ModuleName, modImports :: [ModuleName], modDecls :: [ModuleDecl] }
     deriving (Eq, Show)
         
 newtype ModuleName 
-    = ModuleName (NonEmpty String)
+    = ModuleName { getModuleName :: (NonEmpty String) }
     deriving (Eq, Ord)
+
+getModuleNameParts :: ModuleName -> [String]
+getModuleNameParts = NonEmpty.toList . getModuleName
 
 instance Show ModuleName where
     show (ModuleName (x :| xs)) = concat . List.intersperse "." $ x : xs
@@ -74,22 +76,3 @@ data PrimType
     deriving (Eq, Show)
 
 
--- module Foo
---     module Bar
---         import X.Y.Z.Baz
---         
---         struct Note { pitch : Pitch }
---         enum Pitch { C, D, E }
---         
---         foo = 5 : Int
--- 
---         foo : Note -> Note
---         bar : Pitch -> Pitch
-testModule = 
-    Module (ModuleName $ NonEmpty.fromList ["Foo", "Bar"]) 
-        [ModuleName $ NonEmpty.fromList ["X", "Y", "Z", "Bar"]]
-        [   
-            TypeDecl "Note" (Struct $ NonEmpty.fromList [("pitch", Ref "Pitch")]),
-            TypeDecl "Pitch" (Enum $ NonEmpty.fromList ["C", "D", "E"]),
-            GlobalDecl "foo" (Just 5) (PrimType Int)
-        ]
