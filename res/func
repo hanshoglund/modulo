@@ -1,13 +1,25 @@
 void f(int x);
 
-CDecl 
-    [CTypeSpec (CVoidType __)] 
-    [(Just 
-        (CDeclr 
-            (Just `f') 
-            [
-                CFunDeclr (Right ([CDecl [CTypeSpec (CIntType __)] [(Just (CDeclr (Just `x') [] Nothing [] __),Nothing,Nothing)] __],False)) [] __
-            ] Nothing [] __),
+CDecl
+    [
+        CTypeSpec (CVoidType  )
+    ]
+    [
+        (Just
+            (CDeclr
+                (Just `f')
+                [
+                    CFunDeclr (Right
+                        (
+                            [CDecl
+                                [CTypeSpec (CIntType  )]
+                                [(Just (CDeclr (Just `x') [] Nothing []  ),Nothing,Nothing)]
+                                 
+                         ],
+                         False))
+                    []  
+                ] Nothing []),
         Nothing,
-        Nothing)] 
-    __
+        Nothing)
+    ]
+     

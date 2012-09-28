@@ -1,4 +1,4 @@
-typedef enum _baz { x, y } baz;
+typedef enum _baz { x, y, z = 13 } baz;
 
 CDecl 
     [
@@ -10,9 +10,9 @@ CDecl
                     (Just 
                         [(`x',Nothing),
                          (`y',Nothing),
-                         (`z',Nothing)]
+                         (`z',Just (CConst (CIntConst 13  )))]
                     )[]))
     ] 
     [
-        (Just (CDeclr (Just `baz') [] Nothing []),Nothing,Nothing)
+        (Just (CDeclr (Just `baz') [] Nothing []  ),Nothing,Nothing)
     ]

@@ -356,60 +356,10 @@ convertTopLevel style mod =
      CTranslUnit [] defInfo
 
 -- convertDecl :: CStyle -> Decl -> CDecl
+-- convertType :: CStyle -> Type -> CTypeSpec
+-- convertPrimType :: CStyle -> PrimType -> CTypeSpec
 
-
--- convertValue :: CStyle -> Value -> CDecl
--- convertType :: CStyle -> Type -> ?
--- convertPrimType :: CStyle -> PrimType -> ?
-
-
-
-
-
-
-
-
-
-modo :: CTranslUnit
-modo = CTranslUnit [
-    CDeclExt typ,
-    CDeclExt typ,
-    CDeclExt typ,
-    CDeclExt typ,
-    CDeclExt foo
-    ] defInfo
-
--- int x
-field :: String -> CDecl
-field x = CDecl [
-        CTypeSpec (CIntType defInfo)
-    ] [
-        topDeclListElem $ CDeclr (Just $ ident x) [] Nothing [] defInfo
-    ] defInfo
-
-
--- typedef struct _foo { int x; int y; } foo; 
-typ :: CDecl
-typ = CDecl [
-        CStorageSpec (CTypedef defInfo),
-        -- CTypeSpec (CTypeDef (ident "_foo") defInfo),
-        CTypeSpec (CSUType (
-            CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
-        ) defInfo)
-    ] [
-        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo,
-        topDeclListElem $ CDeclr (Just $ ident "fxx") [] Nothing [] defInfo
-    ] defInfo
-
--- static const void foo
-foo :: CDecl
-foo = CDecl [
-        CStorageSpec (CStatic defInfo),
-        CTypeQual (CConstQual defInfo),
-        CTypeSpec (CVoidType defInfo)
-    ] [
-        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
-    ] defInfo
+-- convertValue :: CStyle -> Value -> CConst ??
 
 
 
@@ -419,8 +369,52 @@ foo = CDecl [
 
 
 
+-- modo :: CTranslUnit
+-- modo = CTranslUnit [
+--     CDeclExt typ,
+--     CDeclExt typ,
+--     CDeclExt typ,
+--     CDeclExt typ,
+--     CDeclExt foo
+--     ] defInfo
+-- 
+-- -- int x
+-- field :: String -> CDecl
+-- field x = CDecl [
+--         CTypeSpec (CIntType defInfo)
+--     ] [
+--         topDeclListElem $ CDeclr (Just $ ident x) [] Nothing [] defInfo
+--     ] defInfo
+-- 
+-- 
+-- -- typedef struct _foo { int x; int y; } foo; 
+-- typ :: CDecl
+-- typ = CDecl [
+--         CStorageSpec (CTypedef defInfo),
+--         -- CTypeSpec (CTypeDef (ident "_foo") defInfo),
+--         CTypeSpec (CSUType (
+--             CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
+--         ) defInfo)
+--     ] [
+--         topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo,
+--         topDeclListElem $ CDeclr (Just $ ident "fxx") [] Nothing [] defInfo
+--     ] defInfo
+-- 
+-- -- static const void foo
+-- foo :: CDecl
+-- foo = CDecl [
+--         CStorageSpec (CStatic defInfo),
+--         CTypeQual (CConstQual defInfo),
+--         CTypeSpec (CVoidType defInfo)
+--     ] [
+--         topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
+--     ] defInfo
 
 
+
+
+
+pc :: String -> Either ParseError CTranslUnit
 pc x = parseC (inputStreamFromString x) (Position "" 0 0)
 
 printModule :: CStyle -> Module -> String
