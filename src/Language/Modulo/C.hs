@@ -16,6 +16,16 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.C ( 
+        GuardStyle(..),
+        ImportStyle(..),
+        CStyle(..),
+        stdStyle,
+        cairoStyle,
+        gtkStyle,
+        appleStyle, 
+        haskellStyle,
+        convertModule,
+        printModule,
   ) where
 
 import Data.Monoid
@@ -55,8 +65,8 @@ capitalCase :: [String] -> String
 capitalCase = mconcat . fmap toCapital
 
 -- foo_bar
-underscoreSeparated :: [String] -> String
-underscoreSeparated = mconcat . List.intersperse "_"
+usSep :: [String] -> String
+usSep = concatSep "_"
 
 prefixedBy x = (x ++)
 suffixedBy x = (++ x)
@@ -65,55 +75,144 @@ data GuardStyle = Pragma | Ifndef
 data ImportStyle = Angles | Quotes
       
 data CStyle =
-    CStyle {
-        guardStyle :: GuardStyle,
-        importDirective :: String,
-        importStyle :: ImportStyle,
-        guardMangler :: [String] -> String,
-
-        typePrefixMangler :: [String] -> String,
-        valuePrefixMangler :: [String] -> String,
+    CStyle {   
+        -- Guards
+        guardStyle          :: GuardStyle,           -- ^ How to write guards
+        importStyle         :: ImportStyle,          -- ^ What character to use for imports
+        importDirective     :: String,               -- ^ Import directive, usually @include@.
+        guardMangler        :: [String] -> String,   -- ^ Mangles names of header guards
         
-        implStructNameMangler :: [String] -> String,
-        realStructNameMangler :: [String] -> String,
-        unionNameMangler :: [String] -> String,
-        enumNameMangler :: [String] -> String,
-
-        structFieldMangler :: [String] -> String,
-        unionFieldMangler :: [String] -> String,
-        enumFieldMangler :: [String] -> String,
+        -- Prefix
+        typePrefixMangler   :: [String] -> String,   -- ^ Prefix for types
+        valuePrefixMangler  :: [String] -> String,   -- ^ Prefix for values
         
-        constNameMangler :: [String] -> String,
-        globalNameMangler :: [String] -> String,
-        functionNameMangler :: [String] -> String
+        -- Types
+        implStructNameMangler :: [String] -> String, -- ^ Mangles implementation struct names
+        realStructNameMangler :: [String] -> String, -- ^ Mangles ordinary struct names
+        unionNameMangler      :: [String] -> String, -- ^ Mangles union names
+        enumNameMangler       :: [String] -> String, -- ^ Mangles enum names
+
+        -- Fields
+        structFieldMangler  :: [String] -> String,   -- ^ Mangles struct fields
+        unionFieldMangler   :: [String] -> String,   -- ^ Mangles union fields
+        enumFieldMangler    :: [String] -> String,   -- ^ Mangles enum fields
+        
+        -- Functions and values
+        constNameMangler    :: [String] -> String,   -- ^ Mangles constant values
+        globalNameMangler   :: [String] -> String,   -- ^ Mangles global variables
+        functionNameMangler :: [String] -> String    -- ^ Mangles global functions
     }
 
--- | Style similar to Haskell/Java
-haskellStyle :: CStyle
-haskellStyle = CStyle
-    Ifndef "include" Angles
-    (prefixedBy "_" . underscoreSeparated . fmap toUpper)
-    capitalCase
-    capitalCase
-
-    capitalCase
-    capitalCase
-    capitalCase
-    capitalCase
-
-    mixedCase
-    mixedCase
-    mixedCase
+-- | 
+-- Style used in the standard library.    
+--
+-- * Types:     @ pfoobar_t @ 
+--
+-- * Opaques:   @ _pfoobar_t @ 
+--
+-- * Functions: @ p_foo_bar @ 
+--
+-- * Constants: @ P_FOO_BAR @ 
+--
+-- * Fields:    @ foo_bar @
+stdStyle :: CStyle
+stdStyle = CStyle 
+    Ifndef Angles "include"
+    (prefixedBy "_" . concat . fmap toUpper)
+    (concatSep "_")
+    (concatSep "_")
     
-    mixedCase
-    mixedCase
-    mixedCase
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
 
--- | Style user Apple Frameworks    
+    (concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+
+-- | 
+-- Style used in Cairo.    
+--
+-- * Types:     @ p_foo_bar_t @ 
+--
+-- * Opaques:   @ _p_foo_bar_t @ 
+--
+-- * Functions: @ p_foo_bar @ 
+--
+-- * Constants: @ P_FOO_BAR @ 
+--
+-- * Fields:    @ foo_bar @
+cairoStyle :: CStyle
+cairoStyle = CStyle 
+    Ifndef Angles "include"
+    (prefixedBy "_" . concat . fmap toUpper)
+    (concatSep "_")
+    (concatSep "_")
+    
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+
+    (concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+
+
+-- | 
+-- Style used in GTK.    
+--
+-- * Types:     @ PFooBar @ 
+--
+-- * Opaques:   @ _PFooBar @ 
+--
+-- * Functions: @ p_foo_bar @ 
+--
+-- * Constants: @ P_FOO_BAR @ 
+--
+-- * Fields:    @ foo_bar @
+gtkStyle :: CStyle
+gtkStyle = CStyle 
+    Ifndef Angles "include"
+    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    (concatSep "_")
+    (concatSep "_")
+    
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (suffixedBy "_t" . concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+
+    (concatSep "_")
+    (concatSep "_")
+    (concatSep "_")
+
+-- | 
+-- Style used in Apple Frameworks.    
+--
+-- * Types:     @ PFooBar @ 
+--
+-- * Opaques:   @ PFooBarOpaque @ 
+--
+-- * Functions: @ PFooBar @ 
+--
+-- * Constants: @ kPFooBar @ 
+--
+-- * Fields:    @ mFooBar @
 appleStyle :: CStyle
 appleStyle = CStyle 
-    Ifndef "include" Angles
-    (prefixedBy "_" . underscoreSeparated . fmap toUpper)
+    Ifndef Angles "include"
+    (prefixedBy "_" . concatSep "_" . fmap toUpper)
     capitalCase
     capitalCase
     
@@ -130,25 +229,38 @@ appleStyle = CStyle
     (prefixedBy "g" . capitalCase)
     capitalCase
 
--- | Style used in GTK and many open source applications    
-gtkStyle :: CStyle
-gtkStyle = CStyle 
-    Ifndef "include" Angles
-    (prefixedBy "_" . underscoreSeparated . fmap toUpper)
-    underscoreSeparated
-    underscoreSeparated
-    
-    (suffixedBy "_t" . underscoreSeparated)
-    (suffixedBy "_t" . underscoreSeparated)
-    (suffixedBy "_t" . underscoreSeparated)
-    (suffixedBy "_t" . underscoreSeparated)
-    (underscoreSeparated)
-    (underscoreSeparated)
-    (underscoreSeparated)
+-- | 
+-- Style similar to Haskell conventions.
+--
+-- * Types:     @ PFooBar @ 
+--
+-- * Opaques:   @ PFooBarOpaque @ 
+--
+-- * Functions: @ pfooBar @ 
+--
+-- * Constants: @ pfooBar @ 
+--
+-- * Fields:    @ pfooBar @
+haskellStyle :: CStyle
+haskellStyle = CStyle
+    Ifndef Angles "include"
+    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    capitalCase
+    capitalCase
 
-    underscoreSeparated
-    underscoreSeparated
-    underscoreSeparated
+    capitalCase
+    capitalCase
+    capitalCase
+    capitalCase
+
+    mixedCase
+    mixedCase
+    mixedCase
+    
+    mixedCase
+    mixedCase
+    mixedCase
+
 
 
 -- Codegen
@@ -173,7 +285,7 @@ convertModule style mod = (header, decls, footer)
     where
         header = convertHeader style mod
         footer = convertFooter style mod
-        decls  = convertDecls style mod
+        decls  = convertTopLevel style mod
 
 guardBegin :: GuardStyle -> String -> String
 guardBegin Pragma guard = mempty
@@ -219,17 +331,16 @@ convertFooter style mod = mempty
         guard = guardMangler style name
 
 
-convertDecls :: CStyle -> Module -> CTranslUnit
-convertDecls style mod = 
+convertTopLevel :: CStyle -> Module -> CTranslUnit
+convertTopLevel style mod = 
      CTranslUnit [] defInfo
 
--- convertDeclsDecl :: CStyle -> ModuleDecl -> CTranslUnit
--- 
+-- convertDecl :: CStyle -> ModuleDecl -> CDecl
+
+
 -- convertValue :: CStyle -> Value -> CDecl
--- 
--- convertType :: CStyle -> Type -> CTranslUnit
--- 
--- convertPrimType :: CStyle -> PrimType -> CTranslUnit
+-- convertType :: CStyle -> Type -> ?
+-- convertPrimType :: CStyle -> PrimType -> ?
 
 
 

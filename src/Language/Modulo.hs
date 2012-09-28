@@ -19,6 +19,7 @@ module Language.Modulo (
         Module(..),
         ModuleName(..),
         getModuleNameParts,
+        Id,
         ModuleDecl(..),
         Value(..),
         Type(..),
@@ -43,11 +44,13 @@ getModuleNameParts = NonEmpty.toList . getModuleName
 instance Show ModuleName where
     show (ModuleName (x :| xs)) = concat . List.intersperse "." $ x : xs
 
+type Id = String
+
 data ModuleDecl 
-    = TypeDecl String Type
-    | ConstDecl String (Maybe Value) Type
-    | GlobalDecl String (Maybe Value) Type
-    | FunctionDecl String Type
+    = TypeDecl Id Type
+    | ConstDecl Id (Maybe Value) Type
+    | GlobalDecl Id (Maybe Value) Type
+    | FunctionDecl Id Type
     deriving (Eq, Show)
 
 type Value 
@@ -59,12 +62,12 @@ data Type
     | DynArray    Type
     | Array       Type Int
     | Function    [Type] Type
-    | Struct      (NonEmpty (String, Type))
-    | Union       (NonEmpty (String, Type))
-    -- | TagUnion    (NonEmpty (String, Type))
-    | Enum        (NonEmpty String)
+    | Struct      (NonEmpty (Id, Type))
+    | Union       (NonEmpty (Id, Type))
+    -- | TagUnion    (NonEmpty (Id, Type))
+    | Enum        (NonEmpty Id)
     | Alias       Type
-    | Ref         String
+    | Ref         Id
     deriving (Eq, Show)
 
 data PrimType
