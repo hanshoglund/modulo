@@ -43,8 +43,8 @@ instance Show ModuleName where
 
 data ModuleDecl 
     = TypeDecl String Type
-    | GlobalDecl String (Maybe Value) Type
     | ConstDecl String (Maybe Value) Type
+    | GlobalDecl String (Maybe Value) Type
     | FunctionDecl String Type
     deriving (Eq, Show)
 
@@ -52,7 +52,7 @@ type Value
     = Int -- TODO use Foreign.C values here
 
 data Type 
-    = PrimType PrimType
+    = PrimType    PrimType
     | Pointer     Type
     | DynArray    Type
     | Array       Type Int
