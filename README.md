@@ -3,15 +3,15 @@
 
 - Generates modular C99 headers from simple definitions
 - The original definitions parsed back from the generated C files
-    - This may require some "smart" comments in the generated files
 - Optionally generates FFI wrappers for Lisp, Haskell etc
 
 
 Types
     Char Short Int Long LongLong
     UnsignedChar UnsignedShort UnsignedInt UnsignedLong UnsignedLongLong
-    Void Float Double LongDouble
+    Float Double LongDouble
     Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64
+    Void Size Ptrdiff Intptr UnsignedIntptr
     
 Conventional types
     AsciiStr = Ptr Char
@@ -35,20 +35,19 @@ Modules
 Constants
 "Methods"
 
-    module Foo
-        module Bar
-            import X.Y.Z.Baz
+    module Foo {
+        module Bar {
+            import X.Y.Z.Baz;
             
-            struct Note { Pitch, On, Off }
-                default : Note
+            struct Note { Pitch, On, Off };
+            enum Pitch { C, D, E, F, G };
             
-            enum Pitch { C, D, E, F, G }
-            
-            foo = 5 : Int
+            foo = 5 : Int;
 
-            foo : Note -> Note
-            bar : Pitch -> Pitch
-            
+            foo : Note -> Note;
+            bar : Pitch -> Pitch;
+        }
+    }
             
     ==>
         #ifndef _FOO_BAR_BAZ
@@ -56,18 +55,16 @@ Constants
 
         #include <x/y/z/note.h>
     
-        /* Note type */
         struct _foo_bar_note_t { ... };
         typedef struct _foo_bar_note_t foo_bar_note_t;
-        note_t foo_bar_note_default(note_t);
     
-        /* Pitch type */
-        typedef enum foo_bar_pitch { c, d, e, f g, };
+        enum _foo_bar_pitch { c, d, e, f g, };
+        typedef enum _foo_bar_pitch foo_bar_pitch;
     
         static const int foo_bar_foo = 5;
 
         note_t foo_bar_foo(note_t);
-        pitch_t foo_bar_bar(pitch_t)
+        pitch_t foo_bar_bar(pitch_t);
         
         #endif // _FOO_BAR_BAZ
     
@@ -80,3 +77,34 @@ Constants
         ;(defcfun foo_bar_foo :note_t)
     
     
+=============
+
+Generic FFI support
+
+C side
+------
+- Call client
+    - Passing simple values by value
+    - Passing compound values by reference
+- Managing memory
+    - Allocating simple values on stack and heap
+    - Deallocate heap values
+- Read and write to memory
+    - Simple values
+    - Compound values
+
+L side (where L is any language with a C FFI)
+------
+- Call C
+    - Passing simple types by value
+    - Passing compound types by reference
+- Managing memory
+    - Allocating simple values on stack and heap
+    - Deallocate heap values
+- Read and write to memory
+    - Simple values
+
+
+
+
+

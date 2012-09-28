@@ -1,6 +1,7 @@
 
 {-# LANGUAGE DisambiguateRecordFields, TypeFamilies,
-    StandaloneDeriving, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving #-}
+    StandaloneDeriving, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving
+    #-}
 
 -------------------------------------------------------------------------------------
 -- |
@@ -36,12 +37,14 @@ import Language.C.Pretty
 import Language.C.Data.Node     -- TODO can these two be removed and defNodeInfo replaced with _|_ ?
 import Language.C.Data.Ident
 import Language.C.Data.Position
-
+import Language.C.Parser
+import Language.C.Data.InputStream
 import qualified Data.List as List
 import qualified Data.Char as Char
 import qualified Data.List.NonEmpty as NonEmpty
 
 
+-- Util
 concatSep :: [a] -> [[a]] -> [a]
 concatSep x = List.concat . List.intersperse x
 
@@ -65,11 +68,14 @@ capitalCase :: [String] -> String
 capitalCase = mconcat . fmap toCapital
 
 -- foo_bar
-usSep :: [String] -> String
-usSep = concatSep "_"
+sepCase :: [String] -> String
+sepCase = concatSep "_"
 
 prefixedBy x = (x ++)
 suffixedBy x = (++ x)
+
+
+-- Styles
 
 data GuardStyle = Pragma | Ifndef
 data ImportStyle = Angles | Quotes
@@ -101,10 +107,15 @@ data CStyle =
         constNameMangler    :: [String] -> String,   -- ^ Mangles constant values
         globalNameMangler   :: [String] -> String,   -- ^ Mangles global variables
         functionNameMangler :: [String] -> String    -- ^ Mangles global functions
+        
+        -- Options
+        --  Wrap in extern C block
+        --  Add Doxygen stubs (which?)
+        --  Add <PREFIX>_API declaration
     }
 
 -- | 
--- Style used in the standard library.    
+-- Style used in the C standard library.    
 --
 -- * Types:     @ pfoobar_t @ 
 --
@@ -263,8 +274,10 @@ haskellStyle = CStyle
 
 
 
--- Codegen
 
+
+
+-- Codegen
 
 defInfo :: NodeInfo
 defInfo = OnlyPos $ Position undefined 0 0
@@ -305,42 +318,51 @@ convertHeader style mod = mempty
     ++ "\n"
     ++ guardBegin (guardStyle style) guard
     ++ "\n"
-    ++ imps
+    ++ imports
     ++ "\n"
     ++ "\n"
     ++ "<DECLS>"
     ++ "\n"
     ++ "\n"
     where      
-        name = getModuleNameParts . modName $ mod
-        imps = concatSep "\n" 
+        name = NonEmpty.toList . moduleName . modName $ mod
+        guard = guardMangler style name
+        imports = concatSep "\n" 
             . map (prefixedBy "#include <" 
             . suffixedBy ".h>" 
-            . concatSep "/" 
-            . getModuleNameParts) 
+            . concatSep "/"
+            . NonEmpty.toList
+            . moduleName) 
             . modImports 
             $ mod
-        guard = guardMangler style name
     
 convertFooter :: CStyle -> Module -> String
 convertFooter style mod = mempty
     ++ guardEnd (guardStyle style) guard
     ++ "\n\n"
     where
-        name = getModuleNameParts . modName $ mod
+        name = NonEmpty.toList . moduleName . modName $ mod
         guard = guardMangler style name
+
+-- TextMate wants to see 'where' here, please ignore
+
+
+
+
 
 
 convertTopLevel :: CStyle -> Module -> CTranslUnit
 convertTopLevel style mod = 
      CTranslUnit [] defInfo
 
--- convertDecl :: CStyle -> ModuleDecl -> CDecl
+-- convertDecl :: CStyle -> Decl -> CDecl
 
 
 -- convertValue :: CStyle -> Value -> CDecl
 -- convertType :: CStyle -> Type -> ?
 -- convertPrimType :: CStyle -> PrimType -> ?
+
+
 
 
 
@@ -366,17 +388,20 @@ field x = CDecl [
     ] defInfo
 
 
--- typedef struct { int x; int y; } foo; 
+-- typedef struct _foo { int x; int y; } foo; 
 typ :: CDecl
 typ = CDecl [
         CStorageSpec (CTypedef defInfo),
+        -- CTypeSpec (CTypeDef (ident "_foo") defInfo),
         CTypeSpec (CSUType (
-            CStruct CStructTag Nothing (Just [field "x", field "y"]) [] defInfo
+            CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
         ) defInfo)
     ] [
-        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
+        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo,
+        topDeclListElem $ CDeclr (Just $ ident "fxx") [] Nothing [] defInfo
     ] defInfo
 
+-- static const void foo
 foo :: CDecl
 foo = CDecl [
         CStorageSpec (CStatic defInfo),
@@ -390,10 +415,16 @@ foo = CDecl [
 
 
 
+
+
+
+
+
+
+pc x = parseC (inputStreamFromString x) (Position "" 0 0)
+
 printModule :: CStyle -> Module -> String
 printModule style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . convertModule style
-
-
 
 -- module Foo
 --     module Bar
@@ -413,7 +444,37 @@ testModule =
             ModuleName $ NonEmpty.fromList ["scl", "data", "string"]
         ]
         [   
-            TypeDecl "Note" (Struct $ NonEmpty.fromList [("pitch", Ref "Pitch")]),
+            TypeDecl "Note" (Struct $ NonEmpty.fromList [("pitch", Alias "Pitch")]),
             TypeDecl "Pitch" (Enum $ NonEmpty.fromList ["C", "D", "E"]),
-            GlobalDecl "foo" (Just 5) (PrimType Int)
-        ]
+            GlobalDecl "foo" (Just 5) (Prim Int)
+        ]     
+        
+deriving instance Show CTranslUnit
+deriving instance Show CExtDecl
+deriving instance Show CStrLit
+deriving instance Show CFunDef
+deriving instance Show CDecl
+deriving instance Show CStat
+deriving instance Show CDeclr
+deriving instance Show CInit
+deriving instance Show CDeclSpec
+deriving instance Show CAsmStmt
+deriving instance Show CBlockItem
+deriving instance Show CAttr
+deriving instance Show CDerivedDeclr
+deriving instance Show CDesignator
+deriving instance Show CExpr
+deriving instance Show CTypeQual
+deriving instance Show CTypeSpec
+deriving instance Show CAsmOperand
+deriving instance Show CArrSize
+deriving instance Show CBuiltin
+deriving instance Show CConst
+deriving instance Show CEnum
+deriving instance Show CStructUnion
+deriving instance Show CStructTag 
+
+
+
+    
+

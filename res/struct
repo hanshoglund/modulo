@@ -1,0 +1,24 @@
+typedef struct _foo2 { int x; float y; } foo2;
+
+(CDecl
+    [
+        CStorageSpec typedef,
+        CTypeSpec 
+            (CSUType 
+                (CStruct 
+                    CStructTag (Just `_foo2') 
+                    (Just 
+                        [CDecl 
+                            [CTypeSpec (CIntType __)] 
+                            [(Just (CDeclr (Just `x') [] Nothing [] __),Nothing,Nothing)] 
+                            __, 
+                            CDecl [CTypeSpec (CFloatType (NodeInfo ("",0,30) (Name {nameId = 7})))] 
+                            [(Just (CDeclr (Just `y') [] Nothing [] __),Nothing,Nothing)]
+                        ]
+                    ) 
+                    [] 
+                )
+            __)
+    ]
+
+    [(Just (CDeclr (Just `foo2') [] Nothing [] __),Nothing,Nothing)])

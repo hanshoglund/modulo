@@ -1,0 +1,10 @@
+typedef enum _baz { x, y, z } baz;
+
+CDecl 
+    [
+        CStorageSpec typedef,
+        CTypeSpec (CEnumType (CEnum (Just `_baz') (Just [(`x',Nothing),(`y',Nothing),(`z',Nothing)]) []))
+    ] 
+    [
+        (Just (CDeclr (Just `baz') [] Nothing [] (NodeInfo ("",0,30) (Name {nameId = 8}))),Nothing,Nothing)
+    ]
