@@ -14,13 +14,13 @@ Types
     Void Size Ptrdiff Intptr UnsignedIntptr
     
 Conventional types
-    AsciiStr = Ptr Char
-    Utf8Str  = Ptr Char
-    Utf16Str = Ptr UInt16
-    Utf32Str = Ptr UInt32
+    AsciiStr = ptr Char
+    Utf8Str  = ptr Char
+    Utf16Str = ptr UInt16
+    Utf32Str = ptr UInt32
     
 Type constructors
-    Pointer     Ptr a
+    Pointer     ptr a
     DynArray    [a]
     Array       [a x N]
     Function    a, b -> c
