@@ -27,33 +27,43 @@ module Language.Modulo (
 
 import Data.Ord
 import Numeric.Natural      
+
 import Data.List.NonEmpty ( NonEmpty(..) )
+
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
--- | A module is a named container of imports and declarations.
+
+-- | 
+-- A module is a named container of imports and declarations.
 data Module 
-    = Module { modName :: ModuleName, modImports :: [ModuleName], modDeclarations :: [Declaration] }
+    = Module { 
+        modName :: ModuleName, 
+        modImports :: [ModuleName], 
+        modDeclarations :: [Declaration] 
+      }
     deriving (Eq, Show)
 
 instance Ord Module where
     compare = comparing modName
         
--- | A module name is a non-empty list of strings.
+-- | 
+-- A module name is a non-empty list of strings.
 newtype ModuleName 
-    = ModuleName { moduleName :: (NonEmpty String) }
+    = ModuleName { 
+        moduleName :: (NonEmpty String) 
+      }
     deriving (Eq, Ord)
 
 instance Show ModuleName where
     show (ModuleName (x :| xs)) = concat . List.intersperse "." $ x : xs
 
--- | A name is a string.
+-- | 
+-- A name is a string.
 type Name = String
 
--- | An declaration maps a name to type and (optionally) a value.
-
--- TODO Require ValueType (factor out everything but FunctionType)
---  for ConstDecl and GlobalDecl
+-- | 
+-- An declaration maps a name to type and (optionally) a value.
 data Declaration 
     -- | Declares a type using typedef
     = TypeDecl Name Type
@@ -65,18 +75,13 @@ data Declaration
     | GlobalDecl Name (Maybe Value) Type
     deriving (Eq, Show)
 
--- | A value is anything that can be declared as a C constant.
+-- | 
+-- A value is anything that can be declared as a C constant.
 type Value 
     = Int -- TODO use Foreign.C values here
 
--- | A type is either an alias, a primitive or a compound type.
-
--- TODO Distinguishing between tag and typedef for structs and unions.
---      I.e. which of these to declare?
---          typedef struct _x {...} x;
---          typedef struct {...} x;
---          struct _x {...};
-
+-- | 
+-- A type is either an alias, a primitive or a compound type.
 data Type             
     -- | An alias type, introduced by a type declaration.
     = Alias       Name
@@ -114,5 +119,16 @@ data PrimType
     | Float | Double | LongDouble
     | Int8 | Int16 | Int32 | Int64 | UInt8 | UInt16 | UInt32 | UInt64
     deriving (Eq, Show)
+
+
+-- TODO Require ValueType (factor out everything but FunctionType)
+--  for ConstDecl and GlobalDecl
+
+-- TODO Distinguishing between tag and typedef for structs and unions.
+--      I.e. which of these to declare?
+--          typedef struct _x {...} x;
+--          typedef struct {...} x;
+--          struct _x {...};
+
 
 
