@@ -30,6 +30,7 @@ library
         Language.Modulo.Haskell
         Language.Modulo.Lisp
         Language.Modulo.Parser
+        Language.Modulo.Util
 
 executable "modulo"
     hs-source-dirs: src

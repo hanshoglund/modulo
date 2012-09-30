@@ -19,16 +19,28 @@ void g(int x[])
 {    
 }
 
-typedef int int_ternary_t(int, int, int);
-typedef int_ternary_t* int_ternary_ptr_t;
+typedef int (*int_ternary_t)(int, int, int);
+
 typedef int int_t;
 typedef int int_ar_t[10];
-typedef struct { int_ternary_t *x; int_ternary_t *y; } ternary_pair_t;
+typedef struct { int_ternary_t x; int_ternary_t y; } ternary_pair_t;
 
-int_ternary_ptr_t my_ternary;
+int_ternary_t my_ternary;
+
+typedef struct {} fox;
+
+
+
+int my_vector[] = { 1,2,3 };
+
+
+// Forward declare mixup
+typedef union _foreword foreword;
+void make_book(foreword* fw);
+
 
 int main (int argc, char const *argv[])
-{                 
+{         
     foo x;
     foo2 y;
 

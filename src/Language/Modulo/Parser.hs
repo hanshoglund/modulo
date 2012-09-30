@@ -18,12 +18,14 @@ module Language.Modulo.Parser (
   ) where
 
 import Control.Monad
+import Control.Applicative hiding ((<|>), optional, many)
 
 import Text.Parsec hiding (parse, parseTest)
 import Text.Parsec.Token
 import Text.Parsec.String
 
 import Language.Modulo
+import Language.Modulo.Util
 
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty
@@ -38,16 +40,23 @@ parseTest path = do
         Left e -> error . show $ e
         Right m -> return m
 
+parseTest2 path = do 
+    m <- parseTest path
+    putStrLn . breakList 80 "\n" . show $ m
 
 -- Util
 
 -- Parse repeated element with unique prefix.
-manyLinear :: (Show a, Stream s m t) => ParsecT s u m a -> ParsecT s u m [a]
-manyLinear x = x `manyTill` (notFollowedBy x)
+-- manyLinear :: (Show a, Stream s m t) => ParsecT s u m a -> ParsecT s u m [a]
+-- manyLinear p = p `manyTill` (notFollowedBy p)
 
-spaceBefore x = optional lspace >> x
-spaceAfter x  = x >> optional lspace
-spaceAround x = spaceBefore (spaceAfter x)
+occs p = length <$> many p
+
+
+spaceBefore p = optional lspace >> p
+spaceAfter p  = p >> optional lspace
+spaceAround p = spaceBefore (spaceAfter p)
+
 
 -- Parser
 
@@ -58,8 +67,8 @@ parseModule = do
     name <- parseModuleName
     char '{'
     optional lspace
-    imps <- manyLinear parseImport
-    decls <- manyLinear parseDeclaration
+    imps <- many parseImport
+    decls <- many parseDeclaration
     char '}'
     optional lspace
     return $ Module name imps decls
@@ -91,6 +100,7 @@ parseTypeDec = do
     char '='
     optional lspace
     typ <- parseType
+    semi lexer
     return $ TypeDecl name typ
  
 parseTagDec :: Parser Declaration
@@ -110,12 +120,15 @@ parseFunDec :: Parser Declaration
 parseFunDec = error "Can not parse function declarations yet"
 
 
-
 parseType :: Parser Type
 parseType = do
     typ <- parseTypeStart
-    (char '*' >> (return . PointerType . Pointer $ typ)) <|> return typ
-
+    n <- occs (char '*')
+    return $ times n (PointerType . Pointer) typ
+    where
+        times 0 f = id
+        times n f = f . times (n-1) f
+        
 parseTypeStart :: Parser Type
 parseTypeStart = mzero
     <|> parseArrayType
@@ -135,8 +148,8 @@ parseArrayType = do
     typ <- parseType
     optional lspace
     char 'x'
-    n <- lnat
     optional lspace
+    n <- lnat
     char ']'
     optional lspace
     return $ PointerType $ Array typ (fromInteger n)
@@ -195,6 +208,15 @@ parseBitfieldType = do
 -- will choice work here? need backtracking?
 parsePrimType :: Parser Type
 parsePrimType = mzero
+    <|> "Int8"          ==> Int8 
+    <|> "Int16"         ==> Int16 
+    <|> "Int32"         ==> Int32 
+    <|> "Int64"         ==> Int64 
+    <|> "UInt8"         ==> UInt8 
+    <|> "UInt16"        ==> UInt16 
+    <|> "UInt32"        ==> UInt32 
+    <|> "UInt64"        ==> UInt64
+
     <|> "Int"           ==> Int
     <|> "Void"          ==> Void 
     <|> "Size"          ==> Size 
@@ -217,15 +239,6 @@ parsePrimType = mzero
     <|> "Float"         ==> Float 
     <|> "Double"        ==> Double 
     <|> "LongDouble"    ==> LongDouble 
-    
-    <|> "Int8"          ==> Int8 
-    <|> "Int16"         ==> Int16 
-    <|> "Int32"         ==> Int32 
-    <|> "Int64"         ==> Int64 
-    <|> "UInt8"         ==> UInt8 
-    <|> "UInt16"        ==> UInt16 
-    <|> "UInt32"        ==> UInt32 
-    <|> "UInt64"        ==> UInt64
     where
         (==>) s t = lres s >> return (PrimType t)
         
