@@ -68,7 +68,7 @@ parseModule = do
     char '{'
     optional lspace
     imps <- many parseImport
-    decls <- many parseDeclaration
+    decls <- many parseDecl
     char '}'
     optional lspace
     return $ Module name imps decls
@@ -85,15 +85,15 @@ parseImport = do
     semi lexer
     return x
 
-parseDeclaration :: Parser Declaration
-parseDeclaration = mzero
+parseDecl :: Parser Decl
+parseDecl = mzero
     <|> parseTypeDec
     -- <|> parseTagDec
     -- <|> parseFunDec
     -- <|> parseConstDec
     -- <|> parseGlobalDec
 
-parseTypeDec :: Parser Declaration
+parseTypeDec :: Parser Decl
 parseTypeDec = do
     reserved lexer "type"
     name <- lname
@@ -103,20 +103,20 @@ parseTypeDec = do
     semi lexer
     return $ TypeDecl name typ
  
-parseTagDec :: Parser Declaration
+parseTagDec :: Parser Decl
 parseTagDec = do
     reserved lexer "tagname"
     typ <- parseType
     semi lexer
     return $ TagDecl typ
     
-parseConstDec :: Parser Declaration
+parseConstDec :: Parser Decl
 parseConstDec = error "Can not parse constants yet"
 
-parseGlobalDec :: Parser Declaration
+parseGlobalDec :: Parser Decl
 parseGlobalDec = error "Can not parse globals yet"
 
-parseFunDec :: Parser Declaration
+parseFunDec :: Parser Decl
 parseFunDec = error "Can not parse function declarations yet"
 
 
@@ -124,7 +124,7 @@ parseType :: Parser Type
 parseType = do
     typ <- parseTypeStart
     n <- occs (char '*')
-    return $ times n (PointerType . Pointer) typ
+    return $ times n (RefType . Pointer) typ
     where
         times 0 f = id
         times n f = f . times (n-1) f
@@ -132,7 +132,7 @@ parseType = do
 parseTypeStart :: Parser Type
 parseTypeStart = mzero
     <|> parseArrayType
-    <|> parseFunctionType
+    <|> parseFunType
     <|> parseEnumType
     <|> parseUnionType
     <|> parseStructType
@@ -152,10 +152,10 @@ parseArrayType = do
     n <- lnat
     char ']'
     optional lspace
-    return $ PointerType $ Array typ (fromInteger n)
+    return $ RefType $ Array typ (fromInteger n)
 
-parseFunctionType :: Parser Type
-parseFunctionType = do
+parseFunType :: Parser Type
+parseFunType = do
     char '('
     optional lspace
     args <- parseType `sepBy` (spaceAround $ char ',')
@@ -165,7 +165,7 @@ parseFunctionType = do
     string "->"
     optional lspace
     res <- parseType
-    return $ FunctionType $ Function args res
+    return $ FunType $ Function args res
     
 
 parseEnumType :: Parser Type
@@ -177,7 +177,7 @@ parseEnumType = do
     optional lspace
     char '}'
     optional lspace
-    return $ CompoundType $ Enum (n :| ns)
+    return $ CompType $ Enum (n :| ns)
 
 parseUnionType :: Parser Type
 parseUnionType = do
@@ -187,7 +187,7 @@ parseUnionType = do
     (n:ns) <- parseNameType `sepBy` (spaceAround $ char ',')
     optional lspace
     char '}'
-    return $ CompoundType $ Union (n :| ns)
+    return $ CompType $ Union (n :| ns)
 
 parseStructType :: Parser Type
 parseStructType = do
@@ -197,7 +197,7 @@ parseStructType = do
     (n:ns) <- parseNameType `sepBy` (spaceAround $ char ',')
     optional lspace
     char '}'
-    return $ CompoundType $ Struct (n :| ns)
+    return $ CompType $ Struct (n :| ns)
 
 parseBitfieldType :: Parser Type
 parseBitfieldType = do

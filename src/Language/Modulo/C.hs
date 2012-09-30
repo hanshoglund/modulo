@@ -434,8 +434,8 @@ testModule =
             ModuleName $ NonEmpty.fromList ["scl", "data", "string"]
         ]
         [   
-            TypeDecl "Note" (CompoundType $ Struct $ NonEmpty.fromList [("pitch", Alias "Pitch")]),
-            TypeDecl "Pitch" (CompoundType $ Enum $ NonEmpty.fromList ["C", "D", "E"]),
+            TypeDecl "Note" (CompType $ Struct $ NonEmpty.fromList [("pitch", Alias "Pitch")]),
+            TypeDecl "Pitch" (CompType $ Enum $ NonEmpty.fromList ["C", "D", "E"]),
             GlobalDecl "foo" (Just 5) (PrimType Int)
         ]     
         

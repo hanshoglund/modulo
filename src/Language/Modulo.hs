@@ -21,16 +21,16 @@
 module Language.Modulo (
         Module(..),
         ModuleName(..),
-        Declaration(..),
+        Decl(..),
         
         Name,
         Value(..),
         
         Type(..),
         PrimType(..),        
-        PointerType(..),        
-        FunctionType(..),        
-        CompoundType(..),        
+        RefType(..),        
+        FunType(..),        
+        CompType(..),        
   ) where
 
 import Data.Ord
@@ -49,7 +49,7 @@ data Module
     = Module { 
                modName         :: ModuleName, 
                modImports      :: [ModuleName], 
-               modDeclarations :: [Declaration] 
+               modDecls :: [Decl] 
              }
     deriving (Eq, Show)
 
@@ -75,10 +75,10 @@ type Name = String
 
 -- | 
 -- An declaration maps a name to type and (optionally) a value.
-data Declaration 
+data Decl 
     = TypeDecl Name Type                 -- ^ Declares a type.
     | TagDecl Type                       -- ^ Declares a struct or enum tag.
-    | FunctionDecl Name FunctionType     -- ^ Declares a function.
+    | FunctionDecl Name FunType     -- ^ Declares a function.
     | ConstDecl Name (Maybe Value) Type  -- ^ Declares a constant value.
     | GlobalDecl Name (Maybe Value) Type -- ^ Declares a global variable.
     deriving (Eq, Show)
@@ -94,9 +94,9 @@ type Value
 data Type             
     = Alias         Name            -- ^ An alias, introduced by a former type declaration.
     | PrimType      PrimType        
-    | PointerType   PointerType
-    | FunctionType  FunctionType
-    | CompoundType  CompoundType
+    | RefType       RefType
+    | FunType  FunType
+    | CompType  CompType
     deriving (Eq, Show)
 
 -- | A primitive type.
@@ -108,17 +108,17 @@ data PrimType
     | Int8 | Int16 | Int32 | Int64 | UInt8 | UInt16 | UInt32 | UInt64
     deriving (Eq, Show)
 
-data PointerType
+data RefType
     = Pointer Type          -- ^ The C pointer type @t*@.
     | Array   Type Natural  -- ^ The C array type @t[n]@.
     deriving (Eq, Show)
 
 -- | A function type.
-data FunctionType 
+data FunType 
     = Function [Type] Type -- ^ The C function type @Tn(T1, ... Tn-1)@.
     deriving (Eq, Show)
 
-data CompoundType
+data CompType
     = Enum        (NonEmpty Name)                   -- ^ A C enum type.
     | Struct      (NonEmpty (Name, Type))           -- ^ A C struct type.
     | Union       (NonEmpty (Name, Type))           -- ^ A C union type.
@@ -127,9 +127,9 @@ data CompoundType
     
 
 
--- TODO Declaration of struct/union tags
+-- TODO Decl of struct/union tags
 
 -- TODO use Foreign.C values for Value
 
--- TODO Declaration order by sort and name?
+-- TODO Decl order by sort and name?
 
