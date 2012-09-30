@@ -6,7 +6,7 @@
 -- |
 -- Copyright   : (c) Hans Hoglund 2012
 -- License     : BSD-style
--- Maintainer  : hans@hanshoglunds.se
+-- Maintainer  : hans@hanshoglund.se
 -- Stability   : experimental
 -- Portability : GHC
 --
@@ -434,9 +434,9 @@ testModule =
             ModuleName $ NonEmpty.fromList ["scl", "data", "string"]
         ]
         [   
-            TypeDecl "Note" (Struct $ NonEmpty.fromList [("pitch", Alias "Pitch")]),
-            TypeDecl "Pitch" (Enum $ NonEmpty.fromList ["C", "D", "E"]),
-            GlobalDecl "foo" (Just 5) (Prim Int)
+            TypeDecl "Note" (CompoundType $ Struct $ NonEmpty.fromList [("pitch", Alias "Pitch")]),
+            TypeDecl "Pitch" (CompoundType $ Enum $ NonEmpty.fromList ["C", "D", "E"]),
+            GlobalDecl "foo" (Just 5) (PrimType Int)
         ]     
         
 deriving instance Show CTranslUnit

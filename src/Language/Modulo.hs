@@ -8,9 +8,13 @@
 --
 -- License     : BSD-style
 --
--- Maintainer  : hans@hanshoglunds.se
+-- Maintainer  : hans@hanshoglund.se
 -- Stability   : experimental
 -- Portability : GHC
+--     
+-- A module is a set of top-level bindings described in a single header file.
+-- Each module can depend on a set of other modules (translated as include directives).
+-- Recursive dependencies are not allowed.
 --
 -------------------------------------------------------------------------------------
 
@@ -18,15 +22,20 @@ module Language.Modulo (
         Module(..),
         ModuleName(..),
         Declaration(..),
+        
         Name,
         Value(..),
+        
         Type(..),
         PrimType(..),        
+        PointerType(..),        
         FunctionType(..),        
+        CompoundType(..),        
   ) where
 
 import Data.Ord
-import Numeric.Natural      
+import Numeric.Natural
+import Foreign.C.Types      
 
 import Data.List.NonEmpty ( NonEmpty(..) )
 
@@ -38,10 +47,10 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- A module is a named container of imports and declarations.
 data Module 
     = Module { 
-        modName :: ModuleName, 
-        modImports :: [ModuleName], 
-        modDeclarations :: [Declaration] 
-      }
+               modName         :: ModuleName, 
+               modImports      :: [ModuleName], 
+               modDeclarations :: [Declaration] 
+             }
     deriving (Eq, Show)
 
 instance Ord Module where
@@ -51,12 +60,14 @@ instance Ord Module where
 -- A module name is a non-empty list of strings.
 newtype ModuleName 
     = ModuleName { 
-        moduleName :: (NonEmpty String) 
-      }
+                   moduleName :: (NonEmpty String) 
+                 }
     deriving (Eq, Ord)
 
 instance Show ModuleName where
     show (ModuleName (x :| xs)) = concat . List.intersperse "." $ x : xs
+
+
 
 -- | 
 -- A name is a string.
@@ -65,70 +76,60 @@ type Name = String
 -- | 
 -- An declaration maps a name to type and (optionally) a value.
 data Declaration 
-    -- | Declares a type using typedef
-    = TypeDecl Name Type
-    -- | Declares a function.
-    | FunctionDecl Name FunctionType
-    -- | Declares a constant value
-    | ConstDecl Name (Maybe Value) Type
-    -- | Declares a global variable
-    | GlobalDecl Name (Maybe Value) Type
+    = TypeDecl Name Type                 -- ^ Declares a type.
+    | TagDecl Type                       -- ^ Declares a struct or enum tag.
+    | FunctionDecl Name FunctionType     -- ^ Declares a function.
+    | ConstDecl Name (Maybe Value) Type  -- ^ Declares a constant value.
+    | GlobalDecl Name (Maybe Value) Type -- ^ Declares a global variable.
     deriving (Eq, Show)
+
 
 -- | 
 -- A value is anything that can be declared as a C constant.
 type Value 
-    = Int -- TODO use Foreign.C values here
+    = Int 
 
 -- | 
 -- A type is either an alias, a primitive or a compound type.
 data Type             
-    -- | An alias type, introduced by a type declaration.
-    = Alias       Name
-    -- | An primitive type.
-    | Prim        PrimType
-    -- | The C pointer type constructor @T*@.
-    | Pointer     Type
-    -- | The C dynamic array constructor @T[]@.
-    | DynArray    Type
-    -- | The C static array constructor @T[n]@.
-    | Array       Type Natural
-    -- | See `FunctionType`.
-    | Function    FunctionType
-    -- | A C enumeration type.
-    | Enum        (NonEmpty Name)
-    -- | A C struct type.
-    | Struct      (NonEmpty (Name, Type))
-    -- | A C union type.
-    | Union       (NonEmpty (Name, Type))
-    -- TagUnion    (NonEmpty (Name, Type))
-    -- | A C bitfield type.
-    | BitField    (NonEmpty (Name, Type, Natural))
-    deriving (Eq, Show)
-
--- | A function type, factored out as a separate type so that situations
---   where function types are required can be specified exactly.
-data FunctionType = FunctionType [Type] Type -- ^ The C function constructor @Tn(T1, ... Tn-1)@.
+    = Alias         Name            -- ^ An alias, introduced by a former type declaration.
+    | PrimType      PrimType        
+    | PointerType   PointerType
+    | FunctionType  FunctionType
+    | CompoundType  CompoundType
     deriving (Eq, Show)
 
 -- | A primitive type.
 data PrimType
     = Void | Size | Ptrdiff | Intptr | UIntptr 
-    | Char | Short | Int | Long | LongLong
+    | Char  | Short  | Int  | Long  | LongLong
     | UChar | UShort | UInt | ULong | ULongLong
     | Float | Double | LongDouble
     | Int8 | Int16 | Int32 | Int64 | UInt8 | UInt16 | UInt32 | UInt64
     deriving (Eq, Show)
 
+data PointerType
+    = Pointer Type          -- ^ The C pointer type @t*@.
+    | Array   Type Natural  -- ^ The C array type @t[n]@.
+    deriving (Eq, Show)
 
--- TODO Require ValueType (factor out everything but FunctionType)
---  for ConstDecl and GlobalDecl
+-- | A function type.
+data FunctionType 
+    = Function [Type] Type -- ^ The C function type @Tn(T1, ... Tn-1)@.
+    deriving (Eq, Show)
 
--- TODO Distinguishing between tag and typedef for structs and unions.
---      I.e. which of these to declare?
---          typedef struct _x {...} x;
---          typedef struct {...} x;
---          struct _x {...};
+data CompoundType
+    = Enum        (NonEmpty Name)                   -- ^ A C enum type.
+    | Struct      (NonEmpty (Name, Type))           -- ^ A C struct type.
+    | Union       (NonEmpty (Name, Type))           -- ^ A C union type.
+    | BitField    (NonEmpty (Name, Type, Natural))  -- ^ A C bitfield type.
+    deriving (Eq, Show)
+    
 
 
+-- TODO Declaration of struct/union tags
+
+-- TODO use Foreign.C values for Value
+
+-- TODO Declaration order by sort and name?
 

@@ -6,7 +6,7 @@
 -- |
 -- Copyright   : (c) Hans Hoglund 2012
 -- License     : BSD-style
--- Maintainer  : hans@hanshoglunds.se
+-- Maintainer  : hans@hanshoglund.se
 -- Stability   : experimental
 -- Portability : GHC
 --

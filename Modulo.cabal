@@ -10,8 +10,10 @@ tested-with:    GHC
 
 
 description: 
-    Modulo is a tool that generates modular, standard C interfaces according to module descriptors
-    and vice versa. Extensions will be able to generate language bindings for various languages
+    Modulo is a tool that generates modular, standard C interfaces according to high-level
+    module descriptions. 
+    
+    Extensions will be able to generate language bindings for various languages
     including Haskell and Common Lisp.
     
     See also Typo.
