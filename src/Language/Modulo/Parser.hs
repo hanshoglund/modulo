@@ -84,7 +84,7 @@ parseDecl :: Parser Decl
 parseDecl = mzero
     <|> parseTypeDec
     <|> parseTagDec
-    -- <|> parseFunDec
+    <|> parseFunDec
     -- <|> parseConstDec
     -- <|> parseGlobalDec
 
@@ -104,9 +104,22 @@ parseTagDec = do
     typ <- parseType
     semi lexer
     return $ TagDecl typ
-    
+
+-- TODO handle non-function types
 parseFunDec :: Parser Decl
-parseFunDec = error "Can not parse function declarations yet"
+parseFunDec = do
+    (name, FunType typ) <- parseNameType
+    semi lexer
+    return $ FunctionDecl name typ
+
+parseNameType :: Parser (Name, Type)
+parseNameType = do
+    name <- lname
+    char ':'
+    optional lspace
+    typ <- parseType
+    return $ (name, typ)    
+
 
 parseConstDec :: Parser Decl
 parseConstDec = error "Can not parse constants yet"
@@ -240,15 +253,7 @@ parseAliasType = do
     name <- lname
     return $ AliasType name
         
-        
-parseNameType :: Parser (Name, Type)
-parseNameType = do
-    name <- lname
-    optional lspace
-    char ':'
-    optional lspace
-    typ <- parseType
-    return $ (name, typ)
+
 
 
 
