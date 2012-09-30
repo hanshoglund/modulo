@@ -202,7 +202,7 @@ parseStructType = do
     reserved lexer "struct"
     char '{'
     optional lspace
-    (n:ns) <- parseNameType `sepBy` (spaceAround $ char ',')
+    (n:ns) <- parseNameType `sepBy1` (spaceAround $ char ',')
     optional lspace
     char '}'
     return $ CompType $ Struct (n :| ns)

@@ -7,16 +7,18 @@ module Foo {
 
     type Foo = Int;
     type Bar = [Int* x 10];
+    type Nest = struct { 
+      x: [[struct { x:Int } x 10] x 20]
+    };
 
-
-    // type T = Foo;            // an alias is written as its name
-    type A = Int;            // same goes for the primitive types
-    type B = Int*;           // pointer
-    type C = [Int x 10];       // array
-    type D = (Int, Int) -> Int;     // function
-    type E = enum { sweden, norway };                 // anonymous enum
-    type F = union { x: Int, y: Int };         // anonymous union
-    type G = struct { x: Int, y: Int };        // anonymous struct
+    type T = Foo;                               // an alias is written as its name
+    type A = Int;                               // same goes for the primitive types
+    type B = Int*;                              // pointer
+    type C = [Int x 10];                        // array
+    type D = (Int, Int) -> Int;                 // function
+    type E = enum { Sweden, Norway };           // anonymous enum
+    type F = union { x: Int, y: Int };          // anonymous union
+    type G = struct { x: Int, y: Int };         // anonymous struct
     // type H = bitfield { x:Int8, y:Int16 };   // bitfield (length calculated automagically)
     // type I = struct "Foo";                   // struct/union/enum with the given tag
 
@@ -31,7 +33,8 @@ module Foo {
     type Note = struct { pitch: Pitch, on: Time, off: Time };
     type PitchOrNote = union { x: Pitch, y: Note };
 
-    // plus : (x:Int, y:Int) -> Int
-    // foo : Note -> Note;
-    // bar : Pitch -> Pitch; 
+    plus : (Int, Int) -> Int;
+    // plus x = x + x
+    
+    minus : (Int) -> Int;
 }
