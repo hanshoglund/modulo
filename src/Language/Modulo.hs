@@ -78,7 +78,7 @@ type Name = String
 data Decl 
     = TypeDecl Name Type                 -- ^ Declares a type.
     | TagDecl Type                       -- ^ Declares a struct or enum tag.
-    | FunctionDecl Name FunType     -- ^ Declares a function.
+    | FunctionDecl Name FunType          -- ^ Declares a function.
     | ConstDecl Name (Maybe Value) Type  -- ^ Declares a constant value.
     | GlobalDecl Name (Maybe Value) Type -- ^ Declares a global variable.
     deriving (Eq, Show)
@@ -92,10 +92,10 @@ type Value
 -- | 
 -- A type is either an alias, a primitive or a compound type.
 data Type             
-    = Alias         Name            -- ^ An alias, introduced by a former type declaration.
-    | PrimType      PrimType        
-    | RefType       RefType
-    | FunType  FunType
+    = AliasType Name     -- ^ An alias, introduced by a former type declaration.
+    | PrimType  PrimType
+    | RefType   RefType
+    | FunType   FunType
     | CompType  CompType
     deriving (Eq, Show)
 

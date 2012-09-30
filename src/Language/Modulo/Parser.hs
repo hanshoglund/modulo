@@ -44,14 +44,9 @@ parseTest2 path = do
     m <- parseTest path
     putStrLn . breakList 80 "\n" . show $ m
 
+
 -- Util
-
--- Parse repeated element with unique prefix.
--- manyLinear :: (Show a, Stream s m t) => ParsecT s u m a -> ParsecT s u m [a]
--- manyLinear p = p `manyTill` (notFollowedBy p)
-
 occs p = length <$> many p
-
 
 spaceBefore p = optional lspace >> p
 spaceAfter p  = p >> optional lspace
@@ -88,7 +83,7 @@ parseImport = do
 parseDecl :: Parser Decl
 parseDecl = mzero
     <|> parseTypeDec
-    -- <|> parseTagDec
+    <|> parseTagDec
     -- <|> parseFunDec
     -- <|> parseConstDec
     -- <|> parseGlobalDec
@@ -110,14 +105,14 @@ parseTagDec = do
     semi lexer
     return $ TagDecl typ
     
+parseFunDec :: Parser Decl
+parseFunDec = error "Can not parse function declarations yet"
+
 parseConstDec :: Parser Decl
 parseConstDec = error "Can not parse constants yet"
 
 parseGlobalDec :: Parser Decl
 parseGlobalDec = error "Can not parse globals yet"
-
-parseFunDec :: Parser Decl
-parseFunDec = error "Can not parse function declarations yet"
 
 
 parseType :: Parser Type
@@ -204,8 +199,6 @@ parseBitfieldType = do
     reserved lexer "bitfield"
     error "Can not parse bitfields yet"
 
-
--- will choice work here? need backtracking?
 parsePrimType :: Parser Type
 parsePrimType = mzero
     <|> "Int8"          ==> Int8 
@@ -243,7 +236,9 @@ parsePrimType = mzero
         (==>) s t = lres s >> return (PrimType t)
         
 parseAliasType :: Parser Type
-parseAliasType = error "Can not parse type aliases yet"
+parseAliasType = do
+    name <- lname
+    return $ AliasType name
         
         
 parseNameType :: Parser (Name, Type)
