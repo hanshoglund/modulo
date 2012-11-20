@@ -347,16 +347,25 @@ convertFooter style mod = mempty
 
 convertTopLevel :: CStyle -> Module -> CTranslUnit
 convertTopLevel style mod = 
-     CTranslUnit [test,test,test] defInfo
+     CTranslUnit test defInfo
      where
-         test = CDeclExt typ
+         test = [CDeclExt typ, CDeclExt ct, CDeclExt ct]
 
 convertDecl :: CStyle -> Decl -> CDecl
 convertDecl = undefined
 
 
-topDeclListElem :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
-topDeclListElem declr = (Just declr, Nothing, Nothing)
+
+
+
+
+
+-- 
+topLevel :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topLevel declr = (Just declr, Nothing, Nothing)
+
+topLevelInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topLevelInit declr init = (Just declr, Just init, Nothing)
 
 
 
@@ -373,21 +382,12 @@ topDeclListElem declr = (Just declr, Nothing, Nothing)
 
 
 
--- modo :: CTranslUnit
--- modo = CTranslUnit [
---     CDeclExt typ,
---     CDeclExt typ,
---     CDeclExt typ,
---     CDeclExt typ,
---     CDeclExt foo
---     ] defInfo
--- 
 -- int x
 field :: String -> CDecl
 field x = CDecl [
         CTypeSpec (CIntType defInfo)
     ] [
-        topDeclListElem $ CDeclr (Just $ ident x) [] Nothing [] defInfo
+        topLevel $ CDeclr (Just $ ident x) [] Nothing [] defInfo
     ] defInfo
 -- 
 -- 
@@ -400,18 +400,18 @@ typ = CDecl [
             CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
         ) defInfo)
     ] [
-        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
+        topLevel $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
     ] defInfo
--- 
--- -- static const void foo
--- foo :: CDecl
--- foo = CDecl [
---         CStorageSpec (CStatic defInfo),
---         CTypeQual (CConstQual defInfo),
---         CTypeSpec (CVoidType defInfo)
---     ] [
---         topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
---     ] defInfo
+
+-- static const void foo
+ct :: CDecl
+ct = CDecl [
+        CStorageSpec (CStatic defInfo),
+        CTypeQual (CConstQual defInfo),
+        CTypeSpec (CVoidType defInfo)
+    ] [
+        topLevel $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
+    ] defInfo
 
 
 

@@ -1,9 +1,7 @@
 
-module Foo.Bar.Baz
+module Doremir.Util.List
 {
-  // import X.Y.Z.Baz;
-  // import List;
-  // import List;
+  import Doremir.Util.Ref;
 
   // Type declarations
 
@@ -21,26 +19,33 @@ module Foo.Bar.Baz
   type E = enum { Sweden, Norway };           // anonymous enum
   type F = union { x: Int, y: Int };          // anonymous union
   type G = struct { x: Int, y: Int };         // anonymous struct
+  
+  // TODO
   // type H = bitfield { x:Int8, y:Int16 };   // bitfield (length calculated automagically)
+
+  // TODO
   // type I = struct "Foo";                   // struct/union/enum with the given tag
 
+  // TODO
   // Tag declaration
   // tagname struct "name" { x:Int };
 
+  // TODO
   // Forward declaration (just structs for now)
   // type Foo;
 
-  type Time = Double;
-  type Pitch = enum { C, D, E, F, G };
-  type Note = struct { pitch: Pitch, on: Time, off: Time };
-  type PitchOrNote = union { x: Pitch, y: Note };
-
+  // Function declarations
   plus : (Int, Int) -> Int;
-
   fib : (Int) -> Int;
-                           
-   
-  // compose : ((B) -> C -> (A) -> B) -> (A) -> C;
+
+  // TODO
+  // Constant declarations
+  // const pi = 3.1415 : Int;
+  // var errNo : Int;
+  
+  // fromVoid : () -> Int;
+  // toVoid : Int -> ();
+  compose : ((B) -> C) -> ((A) -> B) -> (A) -> C;
 }
 
 
