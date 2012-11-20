@@ -400,8 +400,7 @@ typ = CDecl [
             CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
         ) defInfo)
     ] [
-        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo,
-        topDeclListElem $ CDeclr (Just $ ident "fxx") [] Nothing [] defInfo
+        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
     ] defInfo
 -- 
 -- -- static const void foo
