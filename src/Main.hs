@@ -66,7 +66,9 @@ runFilter opts = compileFile opts stdin stdout
 compileFile :: [ModOpt] -> Handle -> Handle -> IO ()
 compileFile opts input output = do
     s <- hGetContents input
-    hPutStr output s
+    let m = parseSafe s
+    let c = printModule m
+    hPutStr output c
 
     -- let coreToCore = singleAbs . singleApp
     -- let hs = parse s
@@ -85,4 +87,9 @@ compileFile opts input output = do
     --     hPutStr output "\n"
     
     return ()
+    where               
+        parseSafe :: String -> Module
+        parseSafe s = case (parse s) of
+            Left e -> error $ "Parse error: " ++ show e
+            Right m -> m
                                                  
