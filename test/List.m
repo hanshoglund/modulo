@@ -1,15 +1,15 @@
 
 module Scl.List
 {
-  type A    = _;
-  type List = _;
+  type Elem = ();
+  type List = ();
 
   nil     : () -> List;
-  cons    : (A, List) -> List;
-  head    : (List) -> A;
+  cons    : (Elem, List) -> List;
+  head    : (List) -> Elem;
   tail    : (List) -> List;
   init    : (List) -> List;
-  last    : (List) -> A;
+  last    : (List) -> Elem;
 
   empty   : (List) -> Bool;
   lenght  : (List) -> Int;
@@ -18,7 +18,7 @@ module Scl.List
   sort    : (List) -> List;
   
   reverse         : (List) -> List;
-  intersperse     : (A, List) -> List;
+  intersperse     : (Elem, List) -> List;
   
   // transpose       : [List] -> [List]
   // subsequences    : List -> [List]
