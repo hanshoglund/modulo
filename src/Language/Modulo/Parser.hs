@@ -14,13 +14,13 @@
 
 module Language.Modulo.Parser (
         parse,
-        parseTest
+        unsafeParseFile
   ) where
 
 import Control.Monad
 import Control.Applicative hiding ((<|>), optional, many)
 
-import Text.Parsec hiding (parse, parseTest)
+import Text.Parsec hiding (parse)
 import Text.Parsec.Token
 import Text.Parsec.String
 
@@ -30,30 +30,33 @@ import Language.Modulo.Util
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty
 
+-- |
+-- Parse a module description from a string, returning an error if unsuccessful and
+-- the resulting module otherwise.
+--
 parse :: String -> Either ParseError Module
 parse str = runParser parseModule () "" str
 
-parseTest :: FilePath -> IO Module
-parseTest path = do
+-- |
+-- Parse a module description from the given file, or fail if unsuccessful.
+--
+-- This unsafe function should not be used in production code.
+--
+unsafeParseFile :: FilePath -> IO Module
+unsafeParseFile path = do
     str <- readFile path
     case (runParser parseModule () path str) of
         Left e -> error . show $ e
         Right m -> return m
 
-parseTest2 path = do 
-    m <- parseTest path
-    putStrLn . breakList 80 "\n" . show $ m
+-- unsafeParseFile2 path = do
+--     m <- unsafeParseFile path
+--     putStrLn . breakList 80 "\n" . show $ m
 
 
--- Util
-occs p = length <$> many p
-
-spaceBefore p = optional lspace >> p
-spaceAfter p  = p >> optional lspace
-spaceAround p = spaceBefore (spaceAfter p)
-
-
+-------------------------------------------------------------------------------------
 -- Parser
+-------------------------------------------------------------------------------------
 
 parseModule :: Parser Module
 parseModule = do
@@ -97,7 +100,7 @@ parseTypeDec = do
     typ <- parseType
     semi lexer
     return $ TypeDecl name typ
- 
+
 parseTagDec :: Parser Decl
 parseTagDec = do
     reserved lexer "tagname"
@@ -118,7 +121,7 @@ parseNameType = do
     char ':'
     optional lspace
     typ <- parseType
-    return $ (name, typ)    
+    return $ (name, typ)
 
 
 parseConstDec :: Parser Decl
@@ -136,7 +139,7 @@ parseType = do
     where
         times 0 f = id
         times n f = f . times (n-1) f
-        
+
 parseTypeStart :: Parser Type
 parseTypeStart = mzero
     <|> parseArrayType
@@ -151,7 +154,7 @@ parseTypeStart = mzero
 
 parseArrayType :: Parser Type
 parseArrayType = do
-    char '['   
+    char '['
     optional lspace
     typ <- parseType
     optional lspace
@@ -174,7 +177,7 @@ parseFunType = do
     optional lspace
     res <- parseType
     return $ FunType $ Function args res
-    
+
 
 parseEnumType :: Parser Type
 parseEnumType = do
@@ -214,49 +217,55 @@ parseBitfieldType = do
 
 parsePrimType :: Parser Type
 parsePrimType = mzero
-    <|> "Int8"          ==> Int8 
-    <|> "Int16"         ==> Int16 
-    <|> "Int32"         ==> Int32 
-    <|> "Int64"         ==> Int64 
-    <|> "UInt8"         ==> UInt8 
-    <|> "UInt16"        ==> UInt16 
-    <|> "UInt32"        ==> UInt32 
+    <|> "Int8"          ==> Int8
+    <|> "Int16"         ==> Int16
+    <|> "Int32"         ==> Int32
+    <|> "Int64"         ==> Int64
+    <|> "UInt8"         ==> UInt8
+    <|> "UInt16"        ==> UInt16
+    <|> "UInt32"        ==> UInt32
     <|> "UInt64"        ==> UInt64
 
     <|> "Int"           ==> Int
-    <|> "Void"          ==> Void 
-    <|> "Size"          ==> Size 
-    <|> "Ptrdiff"       ==> Ptrdiff 
-    <|> "Intptr"        ==> Intptr 
-    <|> "UIntptr"       ==> UIntptr 
-                        
-    <|> "Char"          ==> Char 
-    <|> "Short"         ==> Short 
-    <|> "Int"           ==> Int 
-    <|> "Long"          ==> Long 
-    <|> "LongLong"      ==> LongLong 
-                        
-    <|> "UChar"         ==> UChar 
-    <|> "UShort"        ==> UShort 
-    <|> "UInt"          ==> UInt 
-    <|> "ULong"         ==> ULong 
-    <|> "ULongLong"     ==> ULongLong 
-    
-    <|> "Float"         ==> Float 
-    <|> "Double"        ==> Double 
-    <|> "LongDouble"    ==> LongDouble 
+    <|> "Void"          ==> Void
+    <|> "Size"          ==> Size
+    <|> "Ptrdiff"       ==> Ptrdiff
+    <|> "Intptr"        ==> Intptr
+    <|> "UIntptr"       ==> UIntptr
+
+    <|> "Char"          ==> Char
+    <|> "Short"         ==> Short
+    <|> "Int"           ==> Int
+    <|> "Long"          ==> Long
+    <|> "LongLong"      ==> LongLong
+
+    <|> "UChar"         ==> UChar
+    <|> "UShort"        ==> UShort
+    <|> "UInt"          ==> UInt
+    <|> "ULong"         ==> ULong
+    <|> "ULongLong"     ==> ULongLong
+
+    <|> "Float"         ==> Float
+    <|> "Double"        ==> Double
+    <|> "LongDouble"    ==> LongDouble
     where
         (==>) s t = lres s >> return (PrimType t)
-        
+
 parseAliasType :: Parser Type
 parseAliasType = do
     name <- lname
     return $ AliasType name
-        
 
 
+-- Extra combinators, not exported
+occs p        = length <$> many p
+spaceBefore p = optional lspace >> p
+spaceAfter p  = p >> optional lspace
+spaceAround p = spaceBefore (spaceAfter p)
 
-
+-------------------------------------------------------------------------------------
+-- Lexer
+-------------------------------------------------------------------------------------
 
 lexer :: TokenParser ()
 lexer = makeTokenParser $
@@ -270,7 +279,7 @@ lexer = makeTokenParser $
                   opLetter        =  mzero,
                   reservedNames   =  reservedNames,
                   reservedOpNames =  mzero,
-                  caseSensitive   =  True }        
+                  caseSensitive   =  True }
 
     where
         reservedNames = [
@@ -284,39 +293,40 @@ lexer = makeTokenParser $
             "bitfield",
 
             "Int",
-            "Void", 
-            "Size", 
-            "Ptrdiff", 
-            "Intptr", 
-            "UIntptr", 
-            
-            "Char", 
-            "Short", 
-            "Int", 
-            "Long", 
-            "LongLong", 
-            
-            "UChar", 
-            "UShort", 
-            "UInt", 
-            "ULong", 
-            "ULongLong", 
-            
-            "Float", 
-            "Double", 
-            "LongDouble", 
-            
-            "Int8", 
-            "Int16", 
-            "Int32", 
-            "Int64", 
-            "UInt8", 
-            "UInt16", 
-            "UInt32", 
-            "UInt64" ] 
-                  
+            "Void",
+            "Size",
+            "Ptrdiff",
+            "Intptr",
+            "UIntptr",
 
+            "Char",
+            "Short",
+            "Int",
+            "Long",
+            "LongLong",
+
+            "UChar",
+            "UShort",
+            "UInt",
+            "ULong",
+            "ULongLong",
+
+            "Float",
+            "Double",
+            "LongDouble",
+
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "UInt8",
+            "UInt16",
+            "UInt32",
+            "UInt64" ]
+
+-- Convenient synonyms, not exported
 lnat   = natural lexer
 lname  = identifier lexer
 lres   = reserved lexer
 lspace = whiteSpace lexer
+

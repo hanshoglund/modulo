@@ -410,34 +410,17 @@ convertTopLevel style mod =
 
 
 
+
+
+-- Debug stuff
+
 pc :: String -> Either ParseError CTranslUnit
 pc x = parseC (inputStreamFromString x) (Position "" 0 0)
 
 printModule :: CStyle -> Module -> String
 printModule style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . convertModule style
 
--- module Foo
---     module Bar
---         import X.Y.Z.Baz
---         
---         struct Note { pitch : Pitch }
---         enum Pitch { C, D, E }
---         
---         foo = 5 : Int
--- 
---         foo : Note -> Note
---         bar : Pitch -> Pitch
-testModule = 
-    Module (ModuleName $ NonEmpty.fromList ["scl", "data", "list"]) 
-        [
-            ModuleName $ NonEmpty.fromList ["scl", "data", "ref"],
-            ModuleName $ NonEmpty.fromList ["scl", "data", "string"]
-        ]
-        [   
-            TypeDecl "Note" (CompType $ Struct $ NonEmpty.fromList [("pitch", AliasType "Pitch")]),
-            TypeDecl "Pitch" (CompType $ Enum $ NonEmpty.fromList ["C", "D", "E"]),
-            GlobalDecl "foo" (Just 5) (PrimType Int)
-        ]     
+
         
 deriving instance Show CTranslUnit
 deriving instance Show CExtDecl

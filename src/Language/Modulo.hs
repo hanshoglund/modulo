@@ -12,20 +12,27 @@
 -- Stability   : experimental
 -- Portability : GHC
 --     
--- A module is a set of top-level bindings described in a single header file.
--- Each module can depend on a set of other modules (translated as include directives).
--- Recursive dependencies are not allowed.
+-- The 'Module' type is the heart of the module language.
+--
+-- Modules can be constructed from module description files using the functions exported 
+-- by "Language.Modulo.Parser" or generated using these types.
 --
 -------------------------------------------------------------------------------------
 
 module Language.Modulo (
+        -- ** The module description language
+        -- $moduleLanguage
+        
+        -- ** Modules
         Module(..),
         ModuleName(..),
-        Decl(..),
         
+        -- ** Declarations
+        Decl(..),
         Name,
         Value(..),
-        
+
+        -- ** Types
         Type(..),
         PrimType(..),        
         RefType(..),        
@@ -42,9 +49,36 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
+-- $moduleLanguage
+-- 
+-- The module language is very simple. Each module consists of a name followed by
+-- eventual import declarations, followed by type declarations. Here is an example module:
+--
+-- > module Scl.List
+-- > {
+-- >   type Elem = Ptr ();
+-- >   type List = Ptr ();
+-- > 
+-- >   nil     : () -> List;
+-- >   cons    : (Elem, List) -> List;
+-- >   head    : (List) -> Elem;
+-- >   tail    : (List) -> List;
+-- > 
+-- >   empty   : (List) -> Bool;
+-- >   lenght  : (List) -> Int;
+-- > 
+-- >   reverse : (List) -> List;
+-- >   sort    : (List) -> List;
+-- > }
+-- 
+-- 
 
 -- | 
 -- A module is a named container of imports and declarations.
+--
+-- Each module can depend on a set of other modules (translated as include directives).
+-- Recursive dependencies are not allowed for now.
+--
 data Module 
     = Module { 
                modName         :: ModuleName, 
