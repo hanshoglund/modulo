@@ -25,16 +25,20 @@ module Language.Modulo.C (
         printModule,
   ) where
 
-import Data.Monoid
+import Data.Semigroup
 import Language.Modulo
 
 import Language.C.Syntax.AST
 import Language.C.Pretty
-import Language.C.Data.Node     -- TODO can these two be removed and defNodeInfo replaced with _|_ ?
+
+-- TODO can these two be removed and defNodeInfo replaced with _|_ ?
+import Language.C.Data.Node     
 import Language.C.Data.Ident
-import Language.C.Data.Position
+-- end TODO
 import Language.C.Parser
+import Language.C.Data.Position
 import Language.C.Data.InputStream
+
 import qualified Data.List as List
 import qualified Data.Char as Char
 import qualified Data.List.NonEmpty as NonEmpty
@@ -270,25 +274,8 @@ haskellStyle = CStyle
 
 
 
-
-
-
 -- Codegen
 
-defInfo :: NodeInfo
-defInfo = OnlyPos $ Position undefined 0 0
-
-ident :: String -> Ident
-ident name = Ident name 0 defInfo
-
-topDeclListElem :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
-topDeclListElem declr = (Just declr, Nothing, Nothing)
-
--- topDeclListElemInit :: CDecl
--- topDeclListElemInit declr init = (Just declr, Just init, Nothing)
-
-
--- Entry
 convertModule :: CStyle -> Module -> (String, CTranslUnit, String)
 convertModule style mod = (header, decls, footer)
     where
@@ -321,14 +308,14 @@ convertHeader style mod = mempty
     ++ "\n"
     ++ "\n"
     where      
-        name = NonEmpty.toList . moduleName . modName $ mod
+        name = NonEmpty.toList . getModuleName . modName $ mod
         guard = guardMangler style name
         imports = concatSep "\n" 
             . map (prefixedBy "#include <" 
             . suffixedBy ".h>" 
             . concatSep "/"
             . NonEmpty.toList
-            . moduleName) 
+            . getModuleName) 
             . modImports 
             $ mod
     
@@ -337,10 +324,12 @@ convertFooter style mod = mempty
     ++ guardEnd (guardStyle style) guard
     ++ "\n\n"
     where
-        name = NonEmpty.toList . moduleName . modName $ mod
+        name = NonEmpty.toList . getModuleName . modName $ mod
         guard = guardMangler style name
 
--- TextMate wants to see 'where' here, please ignore
+
+topDeclListElem :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topDeclListElem declr = (Just declr, Nothing, Nothing)
 
 
 
@@ -414,9 +403,6 @@ convertTopLevel style mod =
 
 -- Debug stuff
 
-pc :: String -> Either ParseError CTranslUnit
-pc x = parseC (inputStreamFromString x) (Position "" 0 0)
-
 printModule :: CStyle -> Module -> String
 printModule style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . convertModule style
 
@@ -449,5 +435,9 @@ deriving instance Show CStructTag
 
 
 
-    
+defInfo :: NodeInfo
+defInfo = OnlyPos $ Position undefined 0 0
+
+ident :: String -> Ident
+ident name = Ident name 0 defInfo
 

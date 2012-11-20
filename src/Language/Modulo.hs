@@ -134,7 +134,7 @@ instance Ord Module where
 -- A module name is a non-empty list of strings.
 newtype ModuleName 
     = ModuleName { 
-                   moduleName :: (NonEmpty String) 
+                   getModuleName :: (NonEmpty String) 
                  }
     deriving (Eq, Ord)
 
