@@ -349,59 +349,70 @@ convertTopLevel :: CStyle -> Module -> CTranslUnit
 convertTopLevel style mod = 
      CTranslUnit test defInfo
      where
-         test = [CDeclExt typ, CDeclExt ct, CDeclExt ct]
+         test = [CDeclExt typ, CDeclExt ct, CDeclExt en]
 
 convertDecl :: CStyle -> Decl -> CDecl
 convertDecl = undefined
 
-
-
-
-
-
-
--- 
-topLevel :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
-topLevel declr = (Just declr, Nothing, Nothing)
-
-topLevelInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
-topLevelInit declr init = (Just declr, Just init, Nothing)
-
-
-
 -- convertType :: CStyle -> Type -> CTypeSpec
 -- convertPrimType :: CStyle -> PrimType -> CTypeSpec
-
 -- convertValue :: CStyle -> Value -> CConst ??
 
 
 
 
+-- Helpers to generate the C declarations
 
+-- | A C identifier
+ident :: String -> Ident
+ident name = Ident name 0 defInfo
 
+-- | Top-level declaration.
+-- To be used for second argument of CDecl.
+topLevel :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topLevel declr = (Just declr, Nothing, Nothing)
 
+-- | Top-level declaration with initialize-expression.
+-- To be used for second argument of CDecl.
+topLevelInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topLevelInit declr init = (Just declr, Just init, Nothing)
 
-
--- int x
-field :: String -> CDecl
-field x = CDecl [
-        CTypeSpec (CIntType defInfo)
+-- | A struct/union field.
+field :: String -> CTypeSpec -> CDecl
+field name typ = CDecl [
+        CTypeSpec typ
     ] [
-        topLevel $ CDeclr (Just $ ident x) [] Nothing [] defInfo
+        topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
     ] defInfo
--- 
--- 
--- -- typedef struct _foo { int x; int y; } foo; 
-typ :: CDecl
-typ = CDecl [
+
+-- | A typedef declaration.
+typeDef :: String -> CTypeSpec -> CDecl
+typeDef name typ = CDecl [
         CStorageSpec (CTypedef defInfo),
-        -- CTypeSpec (CTypeDef (ident "_foo") defInfo),
-        CTypeSpec (CSUType (
-            CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
-        ) defInfo)
+        CTypeSpec typ
     ] [
-        topLevel $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
+        topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
     ] defInfo
+
+
+
+
+
+
+-- typedef struct _foo { int x; int y; } foo; 
+typ :: CDecl
+typ = typeDef "foo" typ
+    where
+        typ = (CSUType (
+                CStruct CStructTag (Just $ ident $ "_foo") (Just [field "a" (CIntType defInfo), field "b" (CIntType defInfo)]) [] defInfo
+            ) defInfo)
+
+en :: CDecl
+en = typeDef "tags" typ
+    where
+        typ = (CEnumType (
+                CEnum (Just $ ident "_tags") (Just [(ident "ein", Nothing), (ident "zwei", Nothing)]) [] defInfo
+            ) defInfo)
 
 -- static const void foo
 ct :: CDecl
@@ -416,12 +427,13 @@ ct = CDecl [
 
 
 
-
+-- | Used for all NodeInfo values in generated code
+-- May be undefined instead?
 defInfo :: NodeInfo
 defInfo = OnlyPos $ Position undefined 0 0
 
-ident :: String -> Ident
-ident name = Ident name 0 defInfo
+
+
         
 deriving instance Show CTranslUnit
 deriving instance Show CExtDecl
