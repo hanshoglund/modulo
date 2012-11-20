@@ -1,5 +1,5 @@
 
-name:           Modulo
+name:           modulo
 version:        0.5
 cabal-version:  >= 0.14
 build-type:     Simple
@@ -10,8 +10,9 @@ tested-with:    GHC
 
 
 description: 
-    Modulo is a tool that generates modular, standard C interfaces according to high-level
-    module descriptions. 
+    Modulo is a tool that generates modular, standard C interfaces based on a high-level 
+    description language. The idea is to specify functionality in the module language 
+    and implement it in any language that supports C-style calling conventions. 
     
     Extensions will be able to generate language bindings for various languages
     including Haskell and Common Lisp.
