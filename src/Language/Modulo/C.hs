@@ -352,9 +352,32 @@ convertTopLevel style mod =
          test = [CDeclExt typ, CDeclExt ct, CDeclExt en]
 
 convertDecl :: CStyle -> Decl -> CDecl
-convertDecl = undefined
+convertDecl st (TypeDecl n t)      = typeDef n (convertType st t) -- TODO mangle name
+convertDecl st (FunctionDecl n t)  = error "Not supported yet"
+convertDecl st (TagDecl t)         = error "Not supported yet"
+convertDecl st (ConstDecl n v t)   = error "Not supported yet"
+convertDecl st (GlobalDecl n v t)  = error "Not supported yet"
 
--- convertType :: CStyle -> Type -> CTypeSpec
+convertType :: CStyle -> Type -> CTypeSpec
+convertType st (AliasType n) = convertAlias st n
+convertType st (PrimType t)  = convertPrimType st t
+convertType st (RefType t)   = convertRefType st t
+convertType st (FunType t)   = convertFunType st t
+convertType st (CompType t)  = convertCompType st t
+    
+
+convertAlias :: CStyle -> Name -> CTypeSpec
+convertAlias = undefined
+convertPrimType :: CStyle -> PrimType -> CTypeSpec
+convertPrimType = undefined
+convertRefType :: CStyle -> RefType -> CTypeSpec
+convertRefType = undefined
+convertFunType :: CStyle -> FunType -> CTypeSpec
+convertFunType = undefined
+convertCompType :: CStyle -> CompType -> CTypeSpec
+convertCompType = undefined
+
+
 -- convertPrimType :: CStyle -> PrimType -> CTypeSpec
 -- convertValue :: CStyle -> Value -> CConst ??
 
