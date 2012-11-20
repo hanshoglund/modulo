@@ -1,2 +1,3 @@
 :m + Language.Modulo.C
+:m + Language.Modulo.Parser
 :set prompt "Modulo> "
