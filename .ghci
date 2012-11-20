@@ -1,0 +1,2 @@
+:m + Language.Modulo.C
+:set prompt "Modulo> "
