@@ -120,11 +120,12 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- Recursive dependencies are not allowed for now.
 --
 data Module 
-    = Module { 
-               modName    :: ModuleName, 
-               modImports :: [ModuleName], 
-               modDecls   :: [Decl] 
-             }
+    = Module 
+      { 
+      modName    :: ModuleName, 
+      modImports :: [ModuleName], 
+      modDecls   :: [Decl] 
+      }
     deriving (Eq, Show)
 
 instance Ord Module where
@@ -133,9 +134,10 @@ instance Ord Module where
 -- | 
 -- A module name is a non-empty list of strings.
 newtype ModuleName 
-    = ModuleName { 
-                   getModuleName :: (NonEmpty String) 
-                 }
+    = ModuleName 
+      { 
+      getModuleName :: (NonEmpty String) 
+      }
     deriving (Eq, Ord)
 
 instance Show ModuleName where
@@ -151,8 +153,8 @@ type Name = String
 -- An declaration maps a name to type and (optionally) a value.
 data Decl 
     = TypeDecl Name Type                 -- ^ Declares a type.
-    | TagDecl Type                       -- ^ Declares a struct or enum tag.
     | FunctionDecl Name FunType          -- ^ Declares a function.
+    | TagDecl Type                       -- ^ Declares a struct or enum tag.
     | ConstDecl Name (Maybe Value) Type  -- ^ Declares a constant value.
     | GlobalDecl Name (Maybe Value) Type -- ^ Declares a global variable.
     deriving (Eq, Show)

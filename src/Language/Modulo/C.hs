@@ -48,38 +48,6 @@ import qualified Data.List as List
 import qualified Data.Char as Char
 import qualified Data.List.NonEmpty as NonEmpty
 
-
--- Util
-concatSep :: [a] -> [[a]] -> [a]
-concatSep x = List.concat . List.intersperse x
-
-toUpper :: String -> String
-toUpper = fmap Char.toUpper
-
-toLower :: String -> String
-toLower = fmap Char.toLower
-
-toCapital :: String -> String
-toCapital [] = []
-toCapital (x:xs) = Char.toUpper x : toLower xs
-
--- fooBar
-mixedCase :: [String] -> String
-mixedCase [] = []
-mixedCase (x:xs) = mconcat $ toLower x : fmap toCapital xs
-
--- FooBar
-capitalCase :: [String] -> String
-capitalCase = mconcat . fmap toCapital
-
--- foo_bar
-sepCase :: [String] -> String
-sepCase = concatSep "_"
-
-prefixedBy x = (x ++)
-suffixedBy x = (++ x)
-
-
 -------------------------------------------------------------------------------------
 -- Styles
 -------------------------------------------------------------------------------------
@@ -126,13 +94,13 @@ data CStyle =
         --  Add <PREFIX>_API declaration
     }
 
--- | Default instance using 'stdStyle'.
+-- | Default instance using 'stdStyle'.
 instance Default CStyle where
     def = stdStyle
--- | Left-biased Semigroup instance.
+-- | Left-biased Semigroup instance.
 instance Semigroup CStyle where
     a <> b = a
--- | Left-biased Monoid instance.
+-- |Left-biased Monoid instance.
 instance Monoid CStyle where
     mempty  = def
     mappend = (<>)
@@ -152,7 +120,7 @@ instance Monoid CStyle where
 stdStyle :: CStyle
 stdStyle = CStyle 
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concat . fmap toUpper)
+    (prefixedBy "_" . concatSep "_" . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
     
@@ -183,7 +151,7 @@ stdStyle = CStyle
 cairoStyle :: CStyle
 cairoStyle = CStyle 
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concat . fmap toUpper)
+    (prefixedBy "_" . concatSep "_" . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
     
@@ -297,7 +265,21 @@ haskellStyle = CStyle
 
 
 
+-------------------------------------------------------------------------------------
 -- Codegen
+-------------------------------------------------------------------------------------
+
+-- | 
+-- Print a module using the default style.
+--
+printModule :: Module -> String
+printModule = printModuleStyle def
+
+-- | 
+-- Print a module using the specified style.
+--
+printModuleStyle :: CStyle -> Module -> String
+printModuleStyle style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . renderModuleStyle style
 
 -- | 
 -- Render a module using the default style.
@@ -316,23 +298,27 @@ renderModuleStyle :: CStyle -> Module -> (String, CTranslUnit, String)
 renderModuleStyle style mod = (header, decls, footer)
     where
         header = convertHeader style mod
-        footer = convertFooter style mod
         decls  = convertTopLevel style mod
-
--- | 
--- Print a module using the default style.
---
-printModule :: Module -> String
-printModule = printModuleStyle def
-
--- | 
--- Print a module using the specified style.
---
-printModuleStyle :: CStyle -> Module -> String
-printModuleStyle style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . renderModuleStyle style
+        footer = convertFooter style mod
 
 
+-- Header and footer
 
+convertHeader :: CStyle -> Module -> String
+convertHeader style mod = mempty
+    ++ "\n"
+    ++ guardBegin (guardStyle style) guard
+    ++ "\n"
+    ++ imports 
+    ++ "\n"
+    ++ "\n"
+    where      
+        name = NonEmpty.toList . getModuleName . modName $ mod
+        guard = guardMangler style name
+        imports = concatSep "\n" 
+            . map (prefixedBy "#include <" . suffixedBy ".h>" . concatSep "/" . NonEmpty.toList . getModuleName) 
+            . modImports 
+            $ mod
 
 guardBegin :: GuardStyle -> String -> String
 guardBegin Pragma guard = mempty
@@ -347,31 +333,9 @@ guardEnd Pragma guard = mempty
 guardEnd Ifndef guard = mempty
     ++ "#endif // " ++ guard
 
-convertHeader :: CStyle -> Module -> String
-convertHeader style mod = mempty
-    ++ "\n"
-    ++ guardBegin (guardStyle style) guard
-    ++ "\n"
-    ++ imports
-    ++ "\n"
-    ++ "\n"
-    ++ "<DECLS>"
-    ++ "\n"
-    ++ "\n"
-    where      
-        name = NonEmpty.toList . getModuleName . modName $ mod
-        guard = guardMangler style name
-        imports = concatSep "\n" 
-            . map (prefixedBy "#include <" 
-            . suffixedBy ".h>" 
-            . concatSep "/"
-            . NonEmpty.toList
-            . getModuleName) 
-            . modImports 
-            $ mod
-    
 convertFooter :: CStyle -> Module -> String
 convertFooter style mod = mempty
+    ++ "\n\n"
     ++ guardEnd (guardStyle style) guard
     ++ "\n\n"
     where
@@ -379,19 +343,23 @@ convertFooter style mod = mempty
         guard = guardMangler style name
 
 
+-- Top-level declarations
+
+convertTopLevel :: CStyle -> Module -> CTranslUnit
+convertTopLevel style mod = 
+     CTranslUnit [test,test,test] defInfo
+     where
+         test = CDeclExt typ
+
+convertDecl :: CStyle -> Decl -> CDecl
+convertDecl = undefined
+
+
 topDeclListElem :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 topDeclListElem declr = (Just declr, Nothing, Nothing)
 
 
 
-
-
-
-convertTopLevel :: CStyle -> Module -> CTranslUnit
-convertTopLevel style mod = 
-     CTranslUnit [] defInfo
-
--- convertDecl :: CStyle -> Decl -> CDecl
 -- convertType :: CStyle -> Type -> CTypeSpec
 -- convertPrimType :: CStyle -> PrimType -> CTypeSpec
 
@@ -414,27 +382,27 @@ convertTopLevel style mod =
 --     CDeclExt foo
 --     ] defInfo
 -- 
--- -- int x
--- field :: String -> CDecl
--- field x = CDecl [
---         CTypeSpec (CIntType defInfo)
---     ] [
---         topDeclListElem $ CDeclr (Just $ ident x) [] Nothing [] defInfo
---     ] defInfo
+-- int x
+field :: String -> CDecl
+field x = CDecl [
+        CTypeSpec (CIntType defInfo)
+    ] [
+        topDeclListElem $ CDeclr (Just $ ident x) [] Nothing [] defInfo
+    ] defInfo
 -- 
 -- 
 -- -- typedef struct _foo { int x; int y; } foo; 
--- typ :: CDecl
--- typ = CDecl [
---         CStorageSpec (CTypedef defInfo),
---         -- CTypeSpec (CTypeDef (ident "_foo") defInfo),
---         CTypeSpec (CSUType (
---             CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
---         ) defInfo)
---     ] [
---         topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo,
---         topDeclListElem $ CDeclr (Just $ ident "fxx") [] Nothing [] defInfo
---     ] defInfo
+typ :: CDecl
+typ = CDecl [
+        CStorageSpec (CTypedef defInfo),
+        -- CTypeSpec (CTypeDef (ident "_foo") defInfo),
+        CTypeSpec (CSUType (
+            CStruct CStructTag (Just $ ident $ "_foo") (Just [field "x", field "y"]) [] defInfo
+        ) defInfo)
+    ] [
+        topDeclListElem $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo,
+        topDeclListElem $ CDeclr (Just $ ident "fxx") [] Nothing [] defInfo
+    ] defInfo
 -- 
 -- -- static const void foo
 -- foo :: CDecl
@@ -450,11 +418,11 @@ convertTopLevel style mod =
 
 
 
+defInfo :: NodeInfo
+defInfo = OnlyPos $ Position undefined 0 0
 
-
--- Debug stuff
-
-
+ident :: String -> Ident
+ident name = Ident name 0 defInfo
         
 deriving instance Show CTranslUnit
 deriving instance Show CExtDecl
@@ -483,9 +451,32 @@ deriving instance Show CStructTag
 
 
 
-defInfo :: NodeInfo
-defInfo = OnlyPos $ Position undefined 0 0
 
-ident :: String -> Ident
-ident name = Ident name 0 defInfo
+concatSep :: [a] -> [[a]] -> [a]
+concatSep x = List.concat . List.intersperse x
 
+toUpper :: String -> String
+toUpper = fmap Char.toUpper
+
+toLower :: String -> String
+toLower = fmap Char.toLower
+
+toCapital :: String -> String
+toCapital [] = []
+toCapital (x:xs) = Char.toUpper x : toLower xs
+
+-- fooBar
+mixedCase :: [String] -> String
+mixedCase [] = []
+mixedCase (x:xs) = mconcat $ toLower x : fmap toCapital xs
+
+-- FooBar
+capitalCase :: [String] -> String
+capitalCase = mconcat . fmap toCapital
+
+-- foo_bar
+sepCase :: [String] -> String
+sepCase = concatSep "_"
+
+prefixedBy x = (x ++)
+suffixedBy x = (++ x)    
