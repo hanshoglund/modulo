@@ -49,6 +49,7 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
+-- 
 -- $moduleLanguage
 -- 
 -- The module language is very simple. Each module consists of a name followed by
@@ -70,7 +71,46 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- >   reverse : (List) -> List;
 -- >   sort    : (List) -> List;
 -- > }
+--
+-- Like C, the module language uses structural typing for pointers and functions, but
+-- nominal typing for structures and unions. Thus in the following example values of type
+-- @A@ and @B@ are interchangeable, but values of type @C@ and @D@ are not.
+--
+-- > type A = Ptr Int
+-- > type B = Ptr Int
+-- > type C = struct { x : Int, y : Int }
+-- > type D = struct { x : Int, y : Int }
+--
+-- The pointer type constructor can be used with any type:
+--
+-- > type IntPtr = Int*
+-- > type FloatPtr = Float*
+--
+-- The array type constructor need an explicit length:
+--
+-- > type IntVec = [Int x 10]
+--
+-- Functions are written as in Haskell, except for the parentheses enclosing the arguments.
+-- Thus, higher-arity functions are easily distinguished.
+--
+-- > type NoCurry = (A, B) -> C
+-- > type Curry   = (A) -> (B) -> C
+--
+-- Compound types are written in a uniform manner:
+--
+-- > type IntCounter = struct { a : Int, b : Int -> Int }
+-- > type NumValue   = union { left : Int, right : Float }
+-- > type Color      = enum { Red, Green, Blue }
+--
+-- The following primitive types are provided:
 -- 
+-- > Void Size Ptrdiff Intptr UIntptr 
+-- > Char Short Int Long LongLong
+-- > UChar UShort UInt ULong ULongLong
+-- > Float Double LongDouble
+-- > Int8 Int16 Int32 Int64 UInt8 UInt16 UInt32 UInt64
+-- 
+--
 -- 
 
 -- | 

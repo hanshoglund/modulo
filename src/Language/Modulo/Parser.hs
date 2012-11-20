@@ -134,6 +134,7 @@ parseGlobalDec = error "Can not parse globals yet"
 parseType :: Parser Type
 parseType = do
     typ <- parseTypeStart
+    -- Check for postfix *
     n <- occs (char '*')
     return $ times n (RefType . Pointer) typ
     where
