@@ -13,8 +13,8 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Util (
-    divideList,
-    breakList
+        divideList,
+        breakList
   ) where
 
 import qualified Data.List
