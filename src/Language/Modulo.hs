@@ -81,9 +81,9 @@ import qualified Data.List.NonEmpty as NonEmpty
 --
 data Module 
     = Module { 
-               modName         :: ModuleName, 
-               modImports      :: [ModuleName], 
-               modDecls :: [Decl] 
+               modName    :: ModuleName, 
+               modImports :: [ModuleName], 
+               modDecls   :: [Decl] 
              }
     deriving (Eq, Show)
 
