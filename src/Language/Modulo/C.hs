@@ -13,6 +13,7 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.C ( 
+        -- ** Styles
         GuardStyle(..),
         ImportStyle(..),
         CStyle(..),
@@ -21,10 +22,14 @@ module Language.Modulo.C (
         gtkStyle,
         appleStyle, 
         haskellStyle,
-        convertModule,
+        -- ** Rendering
+        renderModule,
+        renderModuleStyle,
         printModule,
+        printModuleStyle,
   ) where
 
+import Data.Default
 import Data.Semigroup
 import Language.Modulo
 
@@ -75,44 +80,62 @@ prefixedBy x = (x ++)
 suffixedBy x = (++ x)
 
 
+-------------------------------------------------------------------------------------
 -- Styles
+-------------------------------------------------------------------------------------
 
-data GuardStyle = Pragma | Ifndef
-data ImportStyle = Angles | Quotes
+data GuardStyle 
+    = Pragma -- ^ Write pragma guards
+    | Ifndef -- ^ Write conditional guards
+    
+data ImportStyle 
+    = SystemPath -- ^ Import external modules using system paths
+    | LocalPath  -- ^ Import external modules using local paths
       
 data CStyle =
     CStyle {   
         -- Guards
         guardStyle          :: GuardStyle,           -- ^ How to write guards
-        importStyle         :: ImportStyle,          -- ^ What character to use for imports
+        importStyle         :: ImportStyle,          -- ^ How to write import declarations
         importDirective     :: String,               -- ^ Import directive, usually @include@.
-        guardMangler        :: [String] -> String,   -- ^ Mangles names of header guards
+        guardMangler        :: [String] -> String,   -- ^ Mangler for names of header guards
         
         -- Prefix
         typePrefixMangler   :: [String] -> String,   -- ^ Prefix for types
         valuePrefixMangler  :: [String] -> String,   -- ^ Prefix for values
         
         -- Types
-        implStructNameMangler :: [String] -> String, -- ^ Mangles implementation struct names
-        realStructNameMangler :: [String] -> String, -- ^ Mangles ordinary struct names
-        unionNameMangler      :: [String] -> String, -- ^ Mangles union names
-        enumNameMangler       :: [String] -> String, -- ^ Mangles enum names
+        implStructNameMangler :: [String] -> String, -- ^ Mangler for implementation struct names
+        realStructNameMangler :: [String] -> String, -- ^ Mangler for ordinary struct names
+        unionNameMangler      :: [String] -> String, -- ^ Mangler for union names
+        enumNameMangler       :: [String] -> String, -- ^ Mangler for enum names
 
         -- Fields
-        structFieldMangler  :: [String] -> String,   -- ^ Mangles struct fields
-        unionFieldMangler   :: [String] -> String,   -- ^ Mangles union fields
-        enumFieldMangler    :: [String] -> String,   -- ^ Mangles enum fields
+        structFieldMangler  :: [String] -> String,   -- ^ Mangler for struct fields
+        unionFieldMangler   :: [String] -> String,   -- ^ Mangler for union fields
+        enumFieldMangler    :: [String] -> String,   -- ^ Mangler for enum fields
         
         -- Functions and values
-        constNameMangler    :: [String] -> String,   -- ^ Mangles constant values
-        globalNameMangler   :: [String] -> String,   -- ^ Mangles global variables
-        functionNameMangler :: [String] -> String    -- ^ Mangles global functions
+        constNameMangler    :: [String] -> String,   -- ^ Mangler for constant values
+        globalNameMangler   :: [String] -> String,   -- ^ Mangler for global variables
+        functionNameMangler :: [String] -> String    -- ^ Mangler for global functions
         
         -- Options
         --  Wrap in extern C block
         --  Add Doxygen stubs (which?)
         --  Add <PREFIX>_API declaration
     }
+
+-- | Default instance using 'stdStyle'.
+instance Default CStyle where
+    def = stdStyle
+-- | Left-biased Semigroup instance.
+instance Semigroup CStyle where
+    a <> b = a
+-- | Left-biased Monoid instance.
+instance Monoid CStyle where
+    mempty  = def
+    mappend = (<>)
 
 -- | 
 -- Style used in the C standard library.    
@@ -128,7 +151,7 @@ data CStyle =
 -- * Fields:    @ foo_bar @
 stdStyle :: CStyle
 stdStyle = CStyle 
-    Ifndef Angles "include"
+    Ifndef SystemPath "include"
     (prefixedBy "_" . concat . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
@@ -159,7 +182,7 @@ stdStyle = CStyle
 -- * Fields:    @ foo_bar @
 cairoStyle :: CStyle
 cairoStyle = CStyle 
-    Ifndef Angles "include"
+    Ifndef SystemPath "include"
     (prefixedBy "_" . concat . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
@@ -191,7 +214,7 @@ cairoStyle = CStyle
 -- * Fields:    @ foo_bar @
 gtkStyle :: CStyle
 gtkStyle = CStyle 
-    Ifndef Angles "include"
+    Ifndef SystemPath "include"
     (prefixedBy "_" . concatSep "_" . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
@@ -222,7 +245,7 @@ gtkStyle = CStyle
 -- * Fields:    @ mFooBar @
 appleStyle :: CStyle
 appleStyle = CStyle 
-    Ifndef Angles "include"
+    Ifndef SystemPath "include"
     (prefixedBy "_" . concatSep "_" . fmap toUpper)
     capitalCase
     capitalCase
@@ -254,7 +277,7 @@ appleStyle = CStyle
 -- * Fields:    @ pfooBar @
 haskellStyle :: CStyle
 haskellStyle = CStyle
-    Ifndef Angles "include"
+    Ifndef SystemPath "include"
     (prefixedBy "_" . concatSep "_" . fmap toUpper)
     capitalCase
     capitalCase
@@ -276,12 +299,40 @@ haskellStyle = CStyle
 
 -- Codegen
 
-convertModule :: CStyle -> Module -> (String, CTranslUnit, String)
-convertModule style mod = (header, decls, footer)
+-- | 
+-- Render a module using the default style.
+--
+-- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+--
+renderModule :: Module -> (String, CTranslUnit, String)
+renderModule = renderModuleStyle def
+
+-- | 
+-- Render a module using the specified style.
+--
+-- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+--
+renderModuleStyle :: CStyle -> Module -> (String, CTranslUnit, String)
+renderModuleStyle style mod = (header, decls, footer)
     where
         header = convertHeader style mod
         footer = convertFooter style mod
         decls  = convertTopLevel style mod
+
+-- | 
+-- Print a module using the default style.
+--
+printModule :: Module -> String
+printModule = printModuleStyle def
+
+-- | 
+-- Print a module using the specified style.
+--
+printModuleStyle :: CStyle -> Module -> String
+printModuleStyle style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . renderModuleStyle style
+
+
+
 
 guardBegin :: GuardStyle -> String -> String
 guardBegin Pragma guard = mempty
@@ -402,9 +453,6 @@ convertTopLevel style mod =
 
 
 -- Debug stuff
-
-printModule :: CStyle -> Module -> String
-printModule style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . convertModule style
 
 
         
