@@ -22,7 +22,7 @@ description:
 library                    
     build-depends: 
         base, semigroups, data-default,
-        parsec >= 3.1.2, prettify >= 0.5,
+        text, parsec >= 3.1.2, prettify >= 0.5,
         language-c, haskell-src, atto-lisp
     hs-source-dirs: src
     exposed-modules:

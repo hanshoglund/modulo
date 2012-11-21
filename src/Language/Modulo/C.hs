@@ -12,7 +12,7 @@
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.C ( 
+module Language.Modulo.C (
         -- ** Styles
         GuardStyle(..),
         ImportStyle(..),
@@ -20,7 +20,7 @@ module Language.Modulo.C (
         stdStyle,
         cairoStyle,
         gtkStyle,
-        appleStyle, 
+        appleStyle,
         haskellStyle,
         -- ** Rendering
         renderModule,
@@ -37,7 +37,7 @@ import Language.Modulo
 import Language.C.Syntax.AST
 import Language.C.Parser
 import Language.C.Pretty
-import Language.C.Data.Node     
+import Language.C.Data.Node
 import Language.C.Data.Ident
 import Language.C.Data.Position
 import Language.C.Data.InputStream
@@ -50,26 +50,26 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- Styles
 -------------------------------------------------------------------------------------
 
-data GuardStyle 
+data GuardStyle
     = Pragma -- ^ Write pragma guards
     | Ifndef -- ^ Write conditional guards
-    
-data ImportStyle 
+
+data ImportStyle
     = SystemPath -- ^ Import external modules using system paths
     | LocalPath  -- ^ Import external modules using local paths
-      
+
 data CStyle =
-    CStyle {   
+    CStyle {
         -- Guards
         guardStyle          :: GuardStyle,           -- ^ How to write guards
         importStyle         :: ImportStyle,          -- ^ How to write import declarations
         importDirective     :: String,               -- ^ Import directive, usually @include@.
         guardMangler        :: [String] -> String,   -- ^ Mangler for names of header guards
-        
+
         -- Prefix
         typePrefixMangler   :: [String] -> String,   -- ^ Prefix for types
         valuePrefixMangler  :: [String] -> String,   -- ^ Prefix for values
-        
+
         -- Types
         implStructNameMangler :: [String] -> String, -- ^ Mangler for implementation struct names
         realStructNameMangler :: [String] -> String, -- ^ Mangler for ordinary struct names
@@ -80,12 +80,12 @@ data CStyle =
         structFieldMangler  :: [String] -> String,   -- ^ Mangler for struct fields
         unionFieldMangler   :: [String] -> String,   -- ^ Mangler for union fields
         enumFieldMangler    :: [String] -> String,   -- ^ Mangler for enum fields
-        
+
         -- Functions and values
         constNameMangler    :: [String] -> String,   -- ^ Mangler for constant values
         globalNameMangler   :: [String] -> String,   -- ^ Mangler for global variables
         functionNameMangler :: [String] -> String    -- ^ Mangler for global functions
-        
+
         -- Options
         --  Wrap in extern C block
         --  Add Doxygen stubs (which?)
@@ -103,29 +103,29 @@ instance Monoid CStyle where
     mempty  = def
     mappend = (<>)
 
--- | 
--- Style used in the C standard library.    
+-- |
+-- Style used in the C standard library.
 --
--- * Types:     @ pfoobar_t @ 
+-- * Types:     @ pfoobar_t @
 --
--- * Opaques:   @ _pfoobar_t @ 
+-- * Opaques:   @ _pfoobar_t @
 --
--- * Functions: @ p_foo_bar @ 
+-- * Functions: @ p_foo_bar @
 --
--- * Constants: @ P_FOO_BAR @ 
+-- * Constants: @ P_FOO_BAR @
 --
 -- * Fields:    @ foo_bar @
 stdStyle :: CStyle
-stdStyle = CStyle 
+stdStyle = CStyle
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
-    
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
+
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -134,29 +134,29 @@ stdStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
--- | 
--- Style used in Cairo.    
+-- |
+-- Style used in Cairo.
 --
--- * Types:     @ p_foo_bar_t @ 
+-- * Types:     @ p_foo_bar_t @
 --
--- * Opaques:   @ _p_foo_bar_t @ 
+-- * Opaques:   @ _p_foo_bar_t @
 --
--- * Functions: @ p_foo_bar @ 
+-- * Functions: @ p_foo_bar @
 --
--- * Constants: @ P_FOO_BAR @ 
+-- * Constants: @ P_FOO_BAR @
 --
 -- * Fields:    @ foo_bar @
 cairoStyle :: CStyle
-cairoStyle = CStyle 
+cairoStyle = CStyle
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
-    
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
+
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -166,29 +166,29 @@ cairoStyle = CStyle
     (concatSep "_")
 
 
--- | 
--- Style used in GTK.    
+-- |
+-- Style used in GTK.
 --
--- * Types:     @ PFooBar @ 
+-- * Types:     @ PFooBar @
 --
--- * Opaques:   @ _PFooBar @ 
+-- * Opaques:   @ _PFooBar @
 --
--- * Functions: @ p_foo_bar @ 
+-- * Functions: @ p_foo_bar @
 --
--- * Constants: @ P_FOO_BAR @ 
+-- * Constants: @ P_FOO_BAR @
 --
 -- * Fields:    @ foo_bar @
 gtkStyle :: CStyle
-gtkStyle = CStyle 
+gtkStyle = CStyle
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpper)
     (concatSep "_")
     (concatSep "_")
-    
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
-    (suffixedBy "_t" . concatSep "_")
+
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
+    (withSuffix "_t" . concatSep "_")
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -197,54 +197,54 @@ gtkStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
--- | 
--- Style used in Apple Frameworks.    
+-- |
+-- Style used in Apple Frameworks.
 --
--- * Types:     @ PFooBar @ 
+-- * Types:     @ PFooBar @
 --
--- * Opaques:   @ PFooBarOpaque @ 
+-- * Opaques:   @ PFooBarOpaque @
 --
--- * Functions: @ PFooBar @ 
+-- * Functions: @ PFooBar @
 --
--- * Constants: @ kPFooBar @ 
+-- * Constants: @ kPFooBar @
 --
 -- * Fields:    @ mFooBar @
 appleStyle :: CStyle
-appleStyle = CStyle 
+appleStyle = CStyle
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpper)
     capitalCase
     capitalCase
-    
+
     capitalCase
     capitalCase
     capitalCase
     capitalCase
 
-    (prefixedBy "m" . capitalCase)
-    (prefixedBy "m" . capitalCase)
-    (prefixedBy "m" . capitalCase)
-    
-    (prefixedBy "k" . capitalCase)
-    (prefixedBy "g" . capitalCase)
+    (withPrefix "m" . capitalCase)
+    (withPrefix "m" . capitalCase)
+    (withPrefix "m" . capitalCase)
+
+    (withPrefix "k" . capitalCase)
+    (withPrefix "g" . capitalCase)
     capitalCase
 
--- | 
+-- |
 -- Style similar to Haskell conventions.
 --
--- * Types:     @ PFooBar @ 
+-- * Types:     @ PFooBar @
 --
--- * Opaques:   @ PFooBarOpaque @ 
+-- * Opaques:   @ PFooBarOpaque @
 --
--- * Functions: @ pfooBar @ 
+-- * Functions: @ pfooBar @
 --
--- * Constants: @ pfooBar @ 
+-- * Constants: @ pfooBar @
 --
 -- * Fields:    @ pfooBar @
 haskellStyle :: CStyle
 haskellStyle = CStyle
     Ifndef SystemPath "include"
-    (prefixedBy "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpper)
     capitalCase
     capitalCase
 
@@ -256,7 +256,7 @@ haskellStyle = CStyle
     mixedCase
     mixedCase
     mixedCase
-    
+
     mixedCase
     mixedCase
     mixedCase
@@ -267,19 +267,19 @@ haskellStyle = CStyle
 -- Codegen
 -------------------------------------------------------------------------------------
 
--- | 
+-- |
 -- Print a module using the default style.
 --
 printModule :: Module -> String
 printModule = printModuleStyle def
 
--- | 
+-- |
 -- Print a module using the specified style.
 --
 printModuleStyle :: CStyle -> Module -> String
 printModuleStyle style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . renderModuleStyle style
 
--- | 
+-- |
 -- Render a module using the default style.
 --
 -- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
@@ -287,7 +287,7 @@ printModuleStyle style = (\(x,y,z) -> x ++ (show . pretty $ y) ++ z) . renderMod
 renderModule :: Module -> (String, CTranslUnit, String)
 renderModule = renderModuleStyle def
 
--- | 
+-- |
 -- Render a module using the specified style.
 --
 -- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
@@ -307,15 +307,15 @@ convertHeader style mod = mempty
     ++ "\n"
     ++ guardBegin (guardStyle style) guard
     ++ "\n"
-    ++ imports 
+    ++ imports
     ++ "\n"
     ++ "\n"
-    where      
+    where
         name = NonEmpty.toList . getModuleName . modName $ mod
         guard = guardMangler style name
-        imports = concatSep "\n" 
-            . map (prefixedBy "#include <" . suffixedBy ".h>" . concatSep "/" . NonEmpty.toList . getModuleName) 
-            . modImports 
+        imports = concatSep "\n"
+            . map (withPrefix "#include <" . withSuffix ".h>" . concatSep "/" . NonEmpty.toList . getModuleName)
+            . modImports
             $ mod
 
 guardBegin :: GuardStyle -> String -> String
@@ -344,54 +344,68 @@ convertFooter style mod = mempty
 -- Top-level declarations
 
 convertTopLevel :: CStyle -> Module -> CTranslUnit
-convertTopLevel style mod = 
+convertTopLevel style mod =
      CTranslUnit test defInfo
      where
          test = [CDeclExt typ, CDeclExt ct, CDeclExt en]
 
 convertDecl :: CStyle -> Decl -> CDecl
-convertDecl st (TypeDecl n t)      = typeDef n (convertType st t) -- TODO mangle name
+convertDecl st (TypeDecl n t)      = typeDef n (undefined) -- TODO mangle name
 convertDecl st (FunctionDecl n t)  = error "Not supported yet"
 convertDecl st (TagDecl t)         = error "Not supported yet"
 convertDecl st (ConstDecl n v t)   = error "Not supported yet"
 convertDecl st (GlobalDecl n v t)  = error "Not supported yet"
 
-convertType :: CStyle -> Type -> CTypeSpec
+
+
+
+convertType :: CStyle -> Type -> (CTypeSpec,Int)
 convertType st (AliasType n) = convertAlias st n
 convertType st (PrimType t)  = convertPrimType st t
 convertType st (RefType t)   = convertRefType st t
 convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
-    
 
-convertAlias :: CStyle -> Name -> CTypeSpec
-convertAlias st n = CTypeDef (ident n) defInfo
-
-convertPrimType :: CStyle -> PrimType -> CTypeSpec
-convertPrimType st t = CVoidType defInfo -- TODO
-
-convertRefType :: CStyle -> RefType -> CTypeSpec
-convertRefType st (Pointer t) = convertType st t
-convertRefType st (Array t n) = convertType st t
-
-convertFunType :: CStyle -> FunType -> CTypeSpec
-convertFunType st (Function as r) = convertType st r
-
-convertCompType :: CStyle -> CompType -> CTypeSpec
-convertCompType st (Enum as) = CEnumType enum defInfo
+convertAlias :: CStyle -> Name -> (CTypeSpec,Int)
+convertAlias st n = (alias, 0)
     where
+        alias = CTypeDef (ident n) defInfo
+
+convertPrimType :: CStyle -> PrimType -> (CTypeSpec,Int)
+convertPrimType st t = (typ, 0)
+    where
+        typ = CVoidType defInfo -- TODO
+
+convertRefType :: CStyle -> RefType -> (CTypeSpec,Int)
+convertRefType st (Pointer t) = (typ, 0)
+    where
+        (typ,_) = convertType st t
+convertRefType st (Array t n) = (typ, 0)
+    where
+        (typ,_) = convertType st t
+
+convertFunType :: CStyle -> FunType -> (CTypeSpec,Int)
+convertFunType st (Function as r) = (typ,0)
+    where
+        (typ,_) = convertType st r
+
+convertCompType :: CStyle -> CompType -> (CTypeSpec,Int)
+convertCompType st (Enum as) = (typ,0)
+    where                            
+        typ = CEnumType enum defInfo
         enum = CEnum (Just $ ident "") (Just names) [] defInfo
         names = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
-convertCompType st (Struct as) = CSUType struct defInfo
-    where
+convertCompType st (Struct as) = (typ,0)
+    where                              
+        typ = CSUType struct defInfo
         struct = CStruct CStructTag (Just $ ident "") (Just decls) [] defInfo
         decls  = undefined
-convertCompType st (Union as) = CSUType union defInfo
-    where
+convertCompType st (Union as) = (typ,0)
+    where                              
+        typ = CSUType union defInfo
         union  = CStruct CUnionTag (Just $ ident "") (Just decls) [] defInfo
         decls  = undefined
-convertCompType st (BitField as) = undefined
-
+convertCompType st (BitField as) = error "Not implemented: bitfields" -- TODO
 
 
 -- convertPrimType :: CStyle -> PrimType -> CTypeSpec
@@ -420,18 +434,18 @@ topLevelInit declr init = (Just declr, Just init, Nothing)
 
 -- | A struct/union field.
 field :: String -> CTypeSpec -> CDecl
-field name typ = CDecl 
+field name typ = CDecl
     [
         CTypeSpec typ
-    ] 
+    ]
     [
         topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
-    ] 
+    ]
     defInfo
 
 -- | A typedef declaration.
 typeDef :: String -> CTypeSpec -> CDecl
-typeDef name typ = CDecl 
+typeDef name typ = CDecl
     [
         CStorageSpec (CTypedef defInfo),
         CTypeSpec typ
@@ -445,32 +459,32 @@ typeDef name typ = CDecl
 
 
 
--- typedef struct _foo { int x; int y; } foo; 
+-- typedef struct _foo { int x; int y; } foo;
 typ :: CDecl
 typ = typeDef "foo" typ
     where
-        typ = CSUType 
+        typ = CSUType
             (
-                CStruct 
-                    CStructTag 
+                CStruct
+                    CStructTag
                     (Just $ ident $ "_foo")
                     (Just [field "a" (CIntType defInfo), field "b" (CIntType defInfo)])
                     []
                     defInfo
-            ) 
+            )
             defInfo
 
 en :: CDecl
 en = typeDef "tags" typ
     where
-        typ = CEnumType 
+        typ = CEnumType
             (
-                CEnum 
-                    (Just $ ident "_tags") 
-                    (Just [(ident "ein", Nothing), (ident "zwei", Nothing)]) 
-                    [] 
+                CEnum
+                    (Just $ ident "_tags")
+                    (Just [(ident "ein", Nothing), (ident "zwei", Nothing)])
+                    []
                     defInfo
-            ) 
+            )
             defInfo
 
 -- static const void foo
@@ -495,7 +509,7 @@ defInfo :: NodeInfo
 defInfo = error "Can not read nodeInfo"
 
 
-        
+
 deriving instance Show CTranslUnit
 deriving instance Show CExtDecl
 deriving instance Show CStrLit
@@ -519,7 +533,7 @@ deriving instance Show CBuiltin
 deriving instance Show CConst
 deriving instance Show CEnum
 deriving instance Show CStructUnion
-deriving instance Show CStructTag 
+deriving instance Show CStructTag
 
 
 
@@ -550,5 +564,9 @@ capitalCase = mconcat . fmap toCapital
 sepCase :: [String] -> String
 sepCase = concatSep "_"
 
-prefixedBy x = (x ++)
-suffixedBy x = (++ x)    
+withPrefix :: [a] -> [a] -> [a]
+withPrefix x = (x ++)
+
+withSuffix :: [a] -> [a] -> [a]
+withSuffix x = (++ x)
+
