@@ -31,16 +31,14 @@ module Language.Modulo.C (
 
 import Data.Default
 import Data.Semigroup
+
 import Language.Modulo
 
 import Language.C.Syntax.AST
+import Language.C.Parser
 import Language.C.Pretty
-
--- TODO can these two be removed and defNodeInfo replaced with _|_ ?
 import Language.C.Data.Node     
 import Language.C.Data.Ident
--- end TODO
-import Language.C.Parser
 import Language.C.Data.Position
 import Language.C.Data.InputStream
 
@@ -321,17 +319,17 @@ convertHeader style mod = mempty
             $ mod
 
 guardBegin :: GuardStyle -> String -> String
-guardBegin Pragma guard = mempty
+guardBegin Pragma name = mempty
     ++ "#pragma once\n"
-guardBegin Ifndef guard = mempty
-    ++ "#ifndef " ++ guard ++ "\n"
-    ++ "#define " ++ guard ++ "\n"
+guardBegin Ifndef name = mempty
+    ++ "#ifndef " ++ name ++ "\n"
+    ++ "#define " ++ name ++ "\n"
 
 guardEnd :: GuardStyle -> String -> String
-guardEnd Pragma guard = mempty
-    ++ "// " ++ guard
-guardEnd Ifndef guard = mempty
-    ++ "#endif // " ++ guard
+guardEnd Pragma name = mempty
+    ++ "// " ++ name
+guardEnd Ifndef name = mempty
+    ++ "#endif // " ++ name
 
 convertFooter :: CStyle -> Module -> String
 convertFooter style mod = mempty
@@ -367,15 +365,33 @@ convertType st (CompType t)  = convertCompType st t
     
 
 convertAlias :: CStyle -> Name -> CTypeSpec
-convertAlias = undefined
+convertAlias st n = CTypeDef (ident n) defInfo
+
 convertPrimType :: CStyle -> PrimType -> CTypeSpec
-convertPrimType = undefined
+convertPrimType st t = CVoidType defInfo -- TODO
+
 convertRefType :: CStyle -> RefType -> CTypeSpec
-convertRefType = undefined
+convertRefType st (Pointer t) = convertType st t
+convertRefType st (Array t n) = convertType st t
+
 convertFunType :: CStyle -> FunType -> CTypeSpec
-convertFunType = undefined
+convertFunType st (Function as r) = convertType st r
+
 convertCompType :: CStyle -> CompType -> CTypeSpec
-convertCompType = undefined
+convertCompType st (Enum as) = CEnumType enum defInfo
+    where
+        enum = CEnum (Just $ ident "") (Just names) [] defInfo
+        names = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
+convertCompType st (Struct as) = CSUType struct defInfo
+    where
+        struct = CStruct CStructTag (Just $ ident "") (Just decls) [] defInfo
+        decls  = undefined
+convertCompType st (Union as) = CSUType union defInfo
+    where
+        union  = CStruct CUnionTag (Just $ ident "") (Just decls) [] defInfo
+        decls  = undefined
+convertCompType st (BitField as) = undefined
+
 
 
 -- convertPrimType :: CStyle -> PrimType -> CTypeSpec
@@ -400,20 +416,27 @@ topLevel declr = (Just declr, Nothing, Nothing)
 topLevelInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 topLevelInit declr init = (Just declr, Just init, Nothing)
 
+
+
 -- | A struct/union field.
 field :: String -> CTypeSpec -> CDecl
-field name typ = CDecl [
+field name typ = CDecl 
+    [
         CTypeSpec typ
-    ] [
+    ] 
+    [
         topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
-    ] defInfo
+    ] 
+    defInfo
 
 -- | A typedef declaration.
 typeDef :: String -> CTypeSpec -> CDecl
-typeDef name typ = CDecl [
+typeDef name typ = CDecl 
+    [
         CStorageSpec (CTypedef defInfo),
         CTypeSpec typ
-    ] [
+    ]
+    [
         topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
     ] defInfo
 
@@ -426,24 +449,39 @@ typeDef name typ = CDecl [
 typ :: CDecl
 typ = typeDef "foo" typ
     where
-        typ = (CSUType (
-                CStruct CStructTag (Just $ ident $ "_foo") (Just [field "a" (CIntType defInfo), field "b" (CIntType defInfo)]) [] defInfo
-            ) defInfo)
+        typ = CSUType 
+            (
+                CStruct 
+                    CStructTag 
+                    (Just $ ident $ "_foo")
+                    (Just [field "a" (CIntType defInfo), field "b" (CIntType defInfo)])
+                    []
+                    defInfo
+            ) 
+            defInfo
 
 en :: CDecl
 en = typeDef "tags" typ
     where
-        typ = (CEnumType (
-                CEnum (Just $ ident "_tags") (Just [(ident "ein", Nothing), (ident "zwei", Nothing)]) [] defInfo
-            ) defInfo)
+        typ = CEnumType 
+            (
+                CEnum 
+                    (Just $ ident "_tags") 
+                    (Just [(ident "ein", Nothing), (ident "zwei", Nothing)]) 
+                    [] 
+                    defInfo
+            ) 
+            defInfo
 
 -- static const void foo
 ct :: CDecl
-ct = CDecl [
+ct = CDecl
+    [
         CStorageSpec (CStatic defInfo),
         CTypeQual (CConstQual defInfo),
         CTypeSpec (CVoidType defInfo)
-    ] [
+    ]
+    [
         topLevel $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
     ] defInfo
 
@@ -453,8 +491,8 @@ ct = CDecl [
 -- | Used for all NodeInfo values in generated code
 -- May be undefined instead?
 defInfo :: NodeInfo
-defInfo = OnlyPos $ Position undefined 0 0
-
+-- defInfo = OnlyPos $ Position undefined 0 0
+defInfo = error "Can not read nodeInfo"
 
 
         

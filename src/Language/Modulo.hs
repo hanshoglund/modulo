@@ -145,12 +145,16 @@ instance Show ModuleName where
 
 
 
--- | 
--- A name is a string.
+-- |
+-- Name of a type, function or constant value.
+--
+-- Note that any Unicode string may be used as a name.
+--
 type Name = String
 
 -- | 
--- An declaration maps a name to type and (optionally) a value.
+-- An declaration maps a name to type and optionally a value.
+--
 data Decl 
     = TypeDecl Name Type                 -- ^ Declares a type.
     | FunctionDecl Name FunType          -- ^ Declares a function.
@@ -162,8 +166,13 @@ data Decl
 
 -- | 
 -- A value is anything that can be declared as a C constant.
-type Value 
-    = Int 
+data Value 
+    = CInt   Integer
+    | CFloat Double
+    | CStr   String
+    | CWStr  String
+    | CInitList [Value]
+    deriving (Eq, Show)
 
 -- | 
 -- A type is either an alias, a primitive or a compound type.
