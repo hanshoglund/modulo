@@ -1,16 +1,29 @@
 
-module Doremir.Util.List
+module Doremir.Audio.Dispatcher
 {
-  import Doremir.Util.Ref;
+  import stdint;
 
   // Type declarations
 
   type Foo = Int;
   type Bar = [Int* x 10];
+  type Baz = [Int x 10]*;
+  type Bat = (Int,[Int x 2]) -> [Int x 10]*;
   type Nest = struct { 
-    x: [[struct { x: Int } x 10] x 20]
+    x: [[struct { y : Int } x 10] x 20]
   };
+                    
+  type Ptr = (Int) -> Int*;
 
+  type Curried = (Int) -> Int;
+  type Curry = (Int) -> Curried*;
+  type Hask  = ((Int) -> Int) -> Int;
+  type HaskPtr = Hask*;
+
+  /**
+      @name  This is the name.
+      @param These are the parameters.
+   */
   type T = Foo;                               // an alias is written as its name
   type A = Int;                               // same goes for the primitive types
   type B = Int*;                              // pointer
@@ -18,7 +31,14 @@ module Doremir.Util.List
   type D = (Int, Int) -> Int;                 // function
   type E = enum { Sweden, Norway };           // anonymous enum
   type F = union { x: Int, y: Int };          // anonymous union
-  type G = struct { x: Int, y: Int };         // anonymous struct
+  type G = struct { x: Int, y: HaskPtr };     // anonymous struct
+
+  type Prims = struct {
+      v : Void*,
+      i : Int8,
+      j : Int16,
+      k : Int32
+  };
   
   // TODO
   // type H = bitfield { x:Int8, y:Int16 };   // bitfield (length calculated automagically)
@@ -35,8 +55,8 @@ module Doremir.Util.List
   // type Foo;
 
   // Function declarations
-  plus : (Int, Int) -> Int;
-  fib : (Int) -> Int;
+  // plus : (Int, Int) -> Int;
+  // fib : (Int) -> Int;
 
   // TODO
   // Constant declarations
@@ -45,7 +65,7 @@ module Doremir.Util.List
   
   // fromVoid : () -> Int;
   // toVoid : Int -> ();
-  compose : ((B) -> C) -> ((A) -> B) -> (A) -> C;
+  // compose : ((B) -> C) -> ((A) -> B) -> (A) -> C;
 }
 
 
