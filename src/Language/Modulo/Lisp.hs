@@ -53,15 +53,16 @@ lispAlias st n = keyword n --(mangleType st n)
 lispPrimType :: LispStyle -> PrimType -> Lisp
 lispPrimType st Void       = keyword "void"
 -- CFFI does not support these 
-lispPrimType st Size       = keyword (error "Can not use size types with Lisp")
-lispPrimType st Ptrdiff    = keyword (error "Can not use size types with Lisp")
-lispPrimType st Intptr     = keyword (error "Can not use size types with Lisp") 
-lispPrimType st UIntptr    = keyword (error "Can not use size types with Lisp")
+lispPrimType st Size       = error "Can not use size types with CFFI"
+lispPrimType st Ptrdiff    = error "Can not use size types with CFFI"
+lispPrimType st Intptr     = error "Can not use size types with CFFI" 
+lispPrimType st UIntptr    = error "Can not use size types with CFFI"
 lispPrimType st Char       = keyword "char" 
 lispPrimType st Short      = keyword "short" 
 lispPrimType st Int        = keyword "int" 
 lispPrimType st Long       = keyword "long" 
 lispPrimType st LongLong   = keyword "long-long"
+lispPrimType st SChar      = error "Can not use signed char types with CFFI" 
 lispPrimType st UChar      = keyword "unsigned-char" 
 lispPrimType st UShort     = keyword "unsigned-short" 
 lispPrimType st UInt       = keyword "unsigned-int" 

@@ -182,6 +182,7 @@ data Type
 data PrimType
     = Void | Size | Ptrdiff | Intptr | UIntptr 
     | Char  | Short  | Int  | Long  | LongLong
+    | SChar
     | UChar | UShort | UInt | ULong | ULongLong
     | Float | Double | LongDouble
     | Int8 | Int16 | Int32 | Int64 | UInt8 | UInt16 | UInt32 | UInt64

@@ -362,53 +362,52 @@ convertDecl st (GlobalDecl n v t)  = error "Not supported yet"
 
 
 
-convertType :: CStyle -> Type -> (CTypeSpec, [CDerivedDeclr])
+convertType :: CStyle -> Type -> ([CTypeSpec], [CDerivedDeclr])
 convertType st (AliasType n) = convertAlias st n
 convertType st (PrimType t)  = convertPrimType st t
 convertType st (RefType t)   = convertRefType st t
 convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
-convertAlias :: CStyle -> Name -> (CTypeSpec, [CDerivedDeclr])
-convertAlias st n = (alias, [])
+convertAlias :: CStyle -> Name -> ([CTypeSpec], [CDerivedDeclr])
+convertAlias st n = ([alias], [])
     where
         alias = CTypeDef (ident n) defInfo
 
-convertPrimType :: CStyle -> PrimType -> (CTypeSpec, [CDerivedDeclr])
-convertPrimType st t = (typ, [])
+convertPrimType :: CStyle -> PrimType -> ([CTypeSpec], [CDerivedDeclr])
+convertPrimType st t = (prim t, [])
     where
-        typ = CVoidType defInfo -- TODO
-        
-        prim Void       = CVoidType defInfo
-        prim Char       = CCharType defInfo
-        prim Short      = CShortType defInfo 
-        prim Int        = CIntType defInfo 
-        prim Long       = CLongType defInfo
-        prim LongLong   = CVoidType defInfo
-        prim UChar      = CVoidType defInfo
-        prim UShort     = CVoidType defInfo
-        prim UInt       = CVoidType defInfo
-        prim ULong      = CVoidType defInfo
-        prim ULongLong  = CVoidType defInfo
-        prim Float      = CVoidType defInfo
-        prim Double     = CVoidType defInfo
-        prim LongDouble = CVoidType defInfo
-        prim Size       = CTypeDef (ident "size_t") defInfo
-        prim Ptrdiff    = CTypeDef (ident "ptrdiff_t") defInfo
-        prim Intptr     = CTypeDef (ident "intptr_t") defInfo 
-        prim UIntptr    = CTypeDef (ident "uintptr_t") defInfo
-        prim Int8       = CTypeDef (ident "int8_t") defInfo
-        prim Int16      = CTypeDef (ident "int16_t") defInfo
-        prim Int32      = CTypeDef (ident "int32_t") defInfo
-        prim Int64      = CTypeDef (ident "int64_t") defInfo
-        prim UInt8      = CTypeDef (ident "uint8_t") defInfo
-        prim UInt16     = CTypeDef (ident "uint16_t") defInfo
-        prim UInt32     = CTypeDef (ident "uint32_t") defInfo
-        prim UInt64     = CTypeDef (ident "uint64_t") defInfo
+        prim Void       = [CVoidType defInfo]
+        prim Char       = [CCharType defInfo]
+        prim Short      = [CShortType defInfo] 
+        prim Int        = [CIntType defInfo] 
+        prim Long       = [CLongType defInfo]
+        prim LongLong   = [CLongType defInfo, CLongType defInfo]
+        prim SChar      = [CSignedType defInfo, CCharType defInfo]
+        prim UChar      = [CUnsigType defInfo, CCharType defInfo]
+        prim UShort     = [CUnsigType defInfo, CShortType defInfo]
+        prim UInt       = [CUnsigType defInfo, CIntType defInfo]
+        prim ULong      = [CUnsigType defInfo, CLongType defInfo]
+        prim ULongLong  = [CUnsigType defInfo, CLongType defInfo, CLongType defInfo]
+        prim Float      = [CFloatType defInfo]
+        prim Double     = [CDoubleType defInfo]
+        prim LongDouble = [CLongType defInfo, CDoubleType defInfo]
+        prim Size       = return $ CTypeDef (ident "size_t") defInfo
+        prim Ptrdiff    = return $ CTypeDef (ident "ptrdiff_t") defInfo
+        prim Intptr     = return $ CTypeDef (ident "intptr_t") defInfo 
+        prim UIntptr    = return $ CTypeDef (ident "uintptr_t") defInfo
+        prim Int8       = return $ CTypeDef (ident "int8_t") defInfo
+        prim Int16      = return $ CTypeDef (ident "int16_t") defInfo
+        prim Int32      = return $ CTypeDef (ident "int32_t") defInfo
+        prim Int64      = return $ CTypeDef (ident "int64_t") defInfo
+        prim UInt8      = return $ CTypeDef (ident "uint8_t") defInfo
+        prim UInt16     = return $ CTypeDef (ident "uint16_t") defInfo
+        prim UInt32     = return $ CTypeDef (ident "uint32_t") defInfo
+        prim UInt64     = return $ CTypeDef (ident "uint64_t") defInfo
 
 
 
-convertRefType :: CStyle -> RefType -> (CTypeSpec, [CDerivedDeclr])
+convertRefType :: CStyle -> RefType -> ([CTypeSpec], [CDerivedDeclr])
 convertRefType st (Pointer t) = (typ, [CPtrDeclr [] defInfo] ++ ds)
     where
         (typ, ds) = convertType st t
@@ -417,27 +416,27 @@ convertRefType st (Array t n) = (typ, [CArrDeclr [] size defInfo] ++ ds)
         size = (CArrSize True (CConst (CIntConst (fromIntegral n) defInfo)))
         (typ, ds) = convertType st t
 
-convertFunType :: CStyle -> FunType -> (CTypeSpec, [CDerivedDeclr])
+convertFunType :: CStyle -> FunType -> ([CTypeSpec], [CDerivedDeclr])
 convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ ds)
     where                                                             
         args = [error "Function arguments"] 
         -- TODO run convertType and use resulting CTypeSpec ++ CDerivedDeclr to build new CDecl
         (typ, ds) = convertType st r
 
-convertCompType :: CStyle -> CompType -> (CTypeSpec, [CDerivedDeclr])
-convertCompType st (Enum as) = (typ, [])
+convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])
+convertCompType st (Enum as) = ([typ], [])
     where                            
         typ = CEnumType enum defInfo
         enum = CEnum (Just $ ident "") (Just names) [] defInfo
         names = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
 
-convertCompType st (Struct as) = (typ, [])
+convertCompType st (Struct as) = ([typ], [])
     where                              
         typ = CSUType struct defInfo
         struct = CStruct CStructTag (Just $ ident "") (Just decls) [] defInfo
         decls  = undefined
 
-convertCompType st (Union as) = (typ, [])
+convertCompType st (Union as) = ([typ], [])
     where                              
         typ = CSUType union defInfo
         union  = CStruct CUnionTag (Just $ ident "") (Just decls) [] defInfo
