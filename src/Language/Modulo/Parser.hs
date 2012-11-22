@@ -227,7 +227,7 @@ parsePrimType = mzero
     <|> "UInt32"        ==> UInt32
     <|> "UInt64"        ==> UInt64
 
-    <|> "Int"           ==> Int
+    <|> "Bool"          ==> Bool
     <|> "Void"          ==> Void
     <|> "Size"          ==> Size
     <|> "Ptrdiff"       ==> Ptrdiff

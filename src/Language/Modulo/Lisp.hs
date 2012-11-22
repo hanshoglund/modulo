@@ -53,6 +53,7 @@ lispAlias st n = keyword n --(mangleType st n)
 
 lispPrimType :: LispStyle -> PrimType -> Lisp
 lispPrimType st Void       = keyword "void"
+lispPrimType st Bool       = keyword "bool"
 -- CFFI does not support these 
 lispPrimType st Size       = error "Can not use size types with CFFI"
 lispPrimType st Ptrdiff    = error "Can not use size types with CFFI"

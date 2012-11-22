@@ -432,6 +432,8 @@ convertAlias st n = (alias, [])
 convertPrimType :: CStyle -> PrimType -> ([CTypeSpec], [CDerivedDeclr])
 convertPrimType st t = (prim t, [])
     where
+        -- prim Bool       = [CBoolType defInfo]
+        prim Bool       = return $ CTypeDef (ident "bool") defInfo
         prim Void       = [CVoidType defInfo]
         prim Char       = [CCharType defInfo]
         prim Short      = [CShortType defInfo] 
