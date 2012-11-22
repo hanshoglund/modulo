@@ -375,7 +375,12 @@ declTypeDef st n t = CDecl spec decList defInfo
 -- These are used recursively from below
 
 declParam :: CStyle -> Maybe Name -> Type -> CDecl
-declParam = notSupported "Function decls"
+declParam st n t = CDecl spec decList defInfo
+    where
+        (typ, decl) = convertType st t
+        spec    = map CTypeSpec typ
+        declr   = CDeclr (fmap ident n) decl Nothing [] defInfo
+        decList = [memberDeclr declr]
 
 -- struct or union member
 declStructMember :: CStyle -> Name -> Type -> CDecl
@@ -384,7 +389,7 @@ declStructMember st n t = CDecl spec decList defInfo
         (typ, decl) = convertType st t
         spec    = map CTypeSpec typ
         declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
-        decList = [paramDeclr declr]
+        decList = [memberDeclr declr]
 
 declBitfieldMember :: CStyle -> Maybe Name -> Type -> Int -> CDecl
 declBitfieldMember = notSupported "Bit-fields"
@@ -455,7 +460,8 @@ convertFunType :: CStyle -> FunType -> ([CTypeSpec], [CDerivedDeclr])
 convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ decls)
     where                                                             
         (typ, decls) = convertType st r
-        args = [] :: [CDecl] -- TODO
+        args :: [CDecl]
+        args    = map (\t -> declParam st Nothing t) as
 
 convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])
 convertCompType st (Enum as) = ([typ], [])
@@ -506,11 +512,11 @@ topLevelDeclr declr = (Just declr, Nothing, Nothing)
 topLevelDeclrInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 topLevelDeclrInit declr init = (Just declr, Just init, Nothing)
 
--- | Parameter declaration.
+-- | Member declaration.
 memberDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 memberDeclr declr = (Just declr, Nothing, Nothing)
 
--- | Parameter declaration with size.
+-- | Member declaration with size.
 memberDeclrSize :: CDeclr -> CExpr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 memberDeclrSize declr size = (Just declr, Nothing, Just size)
 
