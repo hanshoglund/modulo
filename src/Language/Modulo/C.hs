@@ -378,6 +378,35 @@ convertPrimType :: CStyle -> PrimType -> (CTypeSpec, [CDerivedDeclr])
 convertPrimType st t = (typ, [])
     where
         typ = CVoidType defInfo -- TODO
+        
+        prim Void       = CVoidType defInfo
+        prim Char       = CCharType defInfo
+        prim Short      = CShortType defInfo 
+        prim Int        = CIntType defInfo 
+        prim Long       = CLongType defInfo
+        prim LongLong   = CVoidType defInfo
+        prim UChar      = CVoidType defInfo
+        prim UShort     = CVoidType defInfo
+        prim UInt       = CVoidType defInfo
+        prim ULong      = CVoidType defInfo
+        prim ULongLong  = CVoidType defInfo
+        prim Float      = CVoidType defInfo
+        prim Double     = CVoidType defInfo
+        prim LongDouble = CVoidType defInfo
+        prim Size       = CTypeDef (ident "size_t") defInfo
+        prim Ptrdiff    = CTypeDef (ident "ptrdiff_t") defInfo
+        prim Intptr     = CTypeDef (ident "intptr_t") defInfo 
+        prim UIntptr    = CTypeDef (ident "uintptr_t") defInfo
+        prim Int8       = CTypeDef (ident "int8_t") defInfo
+        prim Int16      = CTypeDef (ident "int16_t") defInfo
+        prim Int32      = CTypeDef (ident "int32_t") defInfo
+        prim Int64      = CTypeDef (ident "int64_t") defInfo
+        prim UInt8      = CTypeDef (ident "uint8_t") defInfo
+        prim UInt16     = CTypeDef (ident "uint16_t") defInfo
+        prim UInt32     = CTypeDef (ident "uint32_t") defInfo
+        prim UInt64     = CTypeDef (ident "uint64_t") defInfo
+
+
 
 convertRefType :: CStyle -> RefType -> (CTypeSpec, [CDerivedDeclr])
 convertRefType st (Pointer t) = (typ, [CPtrDeclr [] defInfo] ++ ds)
@@ -401,20 +430,24 @@ convertCompType st (Enum as) = (typ, [])
         typ = CEnumType enum defInfo
         enum = CEnum (Just $ ident "") (Just names) [] defInfo
         names = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
+
 convertCompType st (Struct as) = (typ, [])
     where                              
         typ = CSUType struct defInfo
         struct = CStruct CStructTag (Just $ ident "") (Just decls) [] defInfo
         decls  = undefined
+
 convertCompType st (Union as) = (typ, [])
     where                              
         typ = CSUType union defInfo
         union  = CStruct CUnionTag (Just $ ident "") (Just decls) [] defInfo
         decls  = undefined
+
 convertCompType st (BitField as) = error "Not implemented: bitfields" -- TODO
 
 
--- convertPrimType :: CStyle -> PrimType -> CTypeSpec
+
+
 -- convertValue :: CStyle -> Value -> CConst ??
 
 
