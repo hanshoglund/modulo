@@ -307,18 +307,18 @@ renderModuleStyle style mod = (header, decls, footer)
 -- Header and footer
 
 convertHeader :: CStyle -> Module -> String
-convertHeader style mod = mempty
+convertHeader st mod = mempty
     ++ "\n"
-    ++ guardBegin (guardStyle style) guard
+    ++ guardBegin (guardStyle st) guard
     ++ "\n"
     ++ imports
     ++ "\n"
     ++ "\n"
     where
         name = NonEmpty.toList . getModuleName . modName $ mod
-        guard = guardMangler style name
+        guard = guardMangler st name
         imports = concatSep "\n"
-            . map (withPrefix "#include <" . withSuffix ".h>" . concatSep "/" . NonEmpty.toList . getModuleName)
+            . map (withPrefix ("#" ++ importDirective st ++ " <") . withSuffix ".h>" . concatSep "/" . NonEmpty.toList . getModuleName)
             . modImports
             $ mod
 
@@ -336,13 +336,13 @@ guardEnd Ifndef name = mempty
     ++ "#endif // " ++ name
 
 convertFooter :: CStyle -> Module -> String
-convertFooter style mod = mempty
+convertFooter st mod = mempty
     ++ "\n\n"
-    ++ guardEnd (guardStyle style) guard
+    ++ guardEnd (guardStyle st) guard
     ++ "\n\n"
     where
         name = NonEmpty.toList . getModuleName . modName $ mod
-        guard = guardMangler style name
+        guard = guardMangler st name
 
 
 
