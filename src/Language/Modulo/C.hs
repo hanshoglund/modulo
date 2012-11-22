@@ -356,20 +356,38 @@ convertTopLevel st (Module n is ds) = CTranslUnit cds defInfo
         cds = map (CDeclExt . convertDecl st) ds
 
 convertDecl :: CStyle -> Decl -> CDecl
-convertDecl st (TypeDecl n t)      = convertTypeDecl st n t         -- typedef T N;
+convertDecl st (TypeDecl n t)      = declTypeDef st n t             -- typedef T N;
 convertDecl st (FunctionDecl n t)  = notSupported "Function decls"  -- T n (as);
 convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
 convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
 
-convertTypeDecl :: CStyle -> Name -> Type -> CDecl             
-convertTypeDecl st n t = CDecl spec decList defInfo
+declTypeDef :: CStyle -> Name -> Type -> CDecl             
+declTypeDef st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
         spec    = [CStorageSpec (CTypedef defInfo)] ++ map CTypeSpec typ
         declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
-        decList = [topLevel declr]
+        decList = [topLevelDeclr declr]
 
+
+
+-- These are used recursively from below
+
+declParam :: CStyle -> Maybe Name -> Type -> CDecl
+declParam = notSupported "Function decls"
+
+-- struct or union member
+declStructMember :: CStyle -> Name -> Type -> CDecl
+declStructMember st n t = CDecl spec decList defInfo
+    where
+        (typ, decl) = convertType st t
+        spec    = map CTypeSpec typ
+        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        decList = [paramDeclr declr]
+
+declBitfieldMember :: CStyle -> Maybe Name -> Type -> Int -> CDecl
+declBitfieldMember = notSupported "Bit-fields"
 
 -- | 
 -- C types are represented by
@@ -452,14 +470,14 @@ convertCompType st (Struct as) = ([typ], [])
         typ     = CSUType struct defInfo
         struct  = cStruct tag (Just decls) [] defInfo
         tag     = Nothing
-        decls   = [] :: [CDecl] -- TODO
+        decls   = map (\(n,t) -> declStructMember st n t) $ NonEmpty.toList as
 
 convertCompType st (Union as) = ([typ], [])
     where                              
         typ     = CSUType union defInfo
         union   = cUnion tag (Just decls) [] defInfo
         tag     = Nothing
-        decls   = [] :: [CDecl] -- TODO
+        decls   = map (\(n,t) -> declStructMember st n t) $ NonEmpty.toList as
 
 convertCompType st (BitField as) = notSupported "Bitfields"
 
@@ -476,19 +494,29 @@ convertCompType st (BitField as) = notSupported "Bitfields"
 -------------------------------------------------------------------------------------
 -- Util
 
--- | A C identifier
+-- | An identifier
 ident :: String -> Ident
 ident name = Ident name 0 defInfo
 
 -- | Top-level declaration.
--- To be used for second argument of CDecl.
-topLevel :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
-topLevel declr = (Just declr, Nothing, Nothing)
+topLevelDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topLevelDeclr declr = (Just declr, Nothing, Nothing)
 
--- | Top-level declaration with initialize-expression.
--- To be used for second argument of CDecl.
-topLevelInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
-topLevelInit declr init = (Just declr, Just init, Nothing)
+-- | Top-level declaration with initial value.
+topLevelDeclrInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+topLevelDeclrInit declr init = (Just declr, Just init, Nothing)
+
+-- | Parameter declaration.
+memberDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+memberDeclr declr = (Just declr, Nothing, Nothing)
+
+-- | Parameter declaration with size.
+memberDeclrSize :: CDeclr -> CExpr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+memberDeclrSize declr size = (Just declr, Nothing, Just size)
+
+-- | Parameter declaration.
+paramDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
+paramDeclr declr = (Just declr, Nothing, Nothing)
 
 
 cStruct :: Maybe Ident -> Maybe [CDecl] -> [CAttr] -> NodeInfo -> CStructUnion
