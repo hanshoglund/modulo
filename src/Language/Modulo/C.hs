@@ -344,24 +344,30 @@ convertFooter style mod = mempty
         guard = guardMangler style name
 
 
+
+
 -- Top-level declarations
 
 convertTopLevel :: CStyle -> Module -> CTranslUnit
-convertTopLevel style mod =
-     CTranslUnit test defInfo
-     where
-         test = [CDeclExt typ, CDeclExt ct, CDeclExt en]
+convertTopLevel st (Module n is ds) = CTranslUnit cds defInfo
+    where
+        cds = map (CDeclExt . convertDecl st) ds
 
 convertDecl :: CStyle -> Decl -> CDecl
-convertDecl st (TypeDecl n t)      = typeDef n (undefined) -- TODO mangle name
-convertDecl st (FunctionDecl n t)  = error "Not supported yet"
-convertDecl st (TagDecl t)         = error "Not supported yet"
-convertDecl st (ConstDecl n v t)   = error "Not supported yet"
-convertDecl st (GlobalDecl n v t)  = error "Not supported yet"
+convertDecl st (TypeDecl n t)      = notSupported "Type decls"      -- typedef T N;
+convertDecl st (FunctionDecl n t)  = notSupported "Function decls"  -- T n (as);
+convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
+convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
+convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
 
 
-
-
+-- | 
+-- C types are represented by
+-- 
+--     1) A sequence of (declaration-specific) type specifiers such as 'unsigned', 'long', 'int' etc 
+--
+--     2) A sequence of (variable-specific) qualifiers such as '*', '[]' or function arguments 
+--
 convertType :: CStyle -> Type -> ([CTypeSpec], [CDerivedDeclr])
 convertType st (AliasType n) = convertAlias st n
 convertType st (PrimType t)  = convertPrimType st t
@@ -370,9 +376,7 @@ convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: CStyle -> Name -> ([CTypeSpec], [CDerivedDeclr])
-convertAlias st n = ([alias], [])
-    where
-        alias = CTypeDef (ident n) defInfo
+convertAlias st n = ([CTypeDef (ident n) defInfo], [])
 
 convertPrimType :: CStyle -> PrimType -> ([CTypeSpec], [CDerivedDeclr])
 convertPrimType st t = (prim t, [])
@@ -419,30 +423,37 @@ convertRefType st (Array t n) = (typ, [CArrDeclr [] size defInfo] ++ ds)
 convertFunType :: CStyle -> FunType -> ([CTypeSpec], [CDerivedDeclr])
 convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ ds)
     where                                                             
-        args = [error "Function arguments"] 
-        -- TODO run convertType and use resulting CTypeSpec ++ CDerivedDeclr to build new CDecl
         (typ, ds) = convertType st r
+        args = [] :: [CDecl] -- TODO
 
 convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])
 convertCompType st (Enum as) = ([typ], [])
     where                            
-        typ = CEnumType enum defInfo
-        enum = CEnum (Just $ ident "") (Just names) [] defInfo
-        names = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
-
+        typ     = CEnumType enum defInfo
+        enum    = CEnum tag (Just names) [] defInfo
+        tag     = Nothing
+        names   = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
+        
 convertCompType st (Struct as) = ([typ], [])
     where                              
-        typ = CSUType struct defInfo
-        struct = CStruct CStructTag (Just $ ident "") (Just decls) [] defInfo
-        decls  = undefined
+        typ     = CSUType struct defInfo
+        struct  = cStruct tag (Just decls) [] defInfo
+        tag     = Nothing
+        decls   = [] :: [CDecl] -- TODO
 
 convertCompType st (Union as) = ([typ], [])
     where                              
-        typ = CSUType union defInfo
-        union  = CStruct CUnionTag (Just $ ident "") (Just decls) [] defInfo
-        decls  = undefined
+        typ     = CSUType union defInfo
+        union   = cUnion tag (Just decls) [] defInfo
+        tag     = Nothing
+        decls   = [] :: [CDecl] -- TODO
 
-convertCompType st (BitField as) = error "Not implemented: bitfields" -- TODO
+convertCompType st (BitField as) = notSupported "Bitfields"
+
+
+
+
+
 
 
 
@@ -469,84 +480,18 @@ topLevelInit :: CDeclr -> CInit -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 topLevelInit declr init = (Just declr, Just init, Nothing)
 
 
+cStruct :: Maybe Ident -> Maybe [CDecl] -> [CAttr] -> NodeInfo -> CStructUnion
+cStruct = CStruct CStructTag
 
--- | A struct/union field.
-field :: String -> CTypeSpec -> CDecl
-field name typ = CDecl
-    [
-        CTypeSpec typ
-    ]
-    [
-        topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
-    ]
-    defInfo
-
--- | A typedef declaration.
-typeDef :: String -> CTypeSpec -> CDecl
-typeDef name typ = CDecl
-    [
-        CStorageSpec (CTypedef defInfo),
-        CTypeSpec typ
-    ]
-    [
-        topLevel $ CDeclr (Just $ ident name) [] Nothing [] defInfo
-    ] defInfo
-
-
-
-
-
-
--- typedef struct _foo { int x; int y; } foo;
-typ :: CDecl
-typ = typeDef "foo" typ
-    where
-        typ = CSUType
-            (
-                CStruct
-                    CStructTag
-                    (Just $ ident $ "_foo")
-                    (Just [field "a" (CIntType defInfo), field "b" (CIntType defInfo)])
-                    []
-                    defInfo
-            )
-            defInfo
-
-en :: CDecl
-en = typeDef "tags" typ
-    where
-        typ = CEnumType
-            (
-                CEnum
-                    (Just $ ident "_tags")
-                    (Just [(ident "ein", Nothing), (ident "zwei", Nothing)])
-                    []
-                    defInfo
-            )
-            defInfo
-
--- static const void foo
-ct :: CDecl
-ct = CDecl
-    [
-        CStorageSpec (CStatic defInfo),
-        CTypeQual (CConstQual defInfo),
-        CTypeSpec (CVoidType defInfo)
-    ]
-    [
-        topLevel $ CDeclr (Just $ ident "foo") [] Nothing [] defInfo
-    ] defInfo
-
-
-
+cUnion :: Maybe Ident -> Maybe [CDecl] -> [CAttr] -> NodeInfo -> CStructUnion
+cUnion  = CStruct CUnionTag
 
 -- | Used for all NodeInfo values in generated code
--- May be undefined instead?
 defInfo :: NodeInfo
--- defInfo = OnlyPos $ Position undefined 0 0
 defInfo = error "Can not read nodeInfo"
+-- defInfo = OnlyPos $ Position undefined 0 0
 
-
+notSupported x = error $ "Not supported yet: " ++ x
 
 deriving instance Show CTranslUnit
 deriving instance Show CExtDecl
