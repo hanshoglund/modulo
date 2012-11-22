@@ -10,9 +10,11 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Renders module descriptions as Haskell 2010 foreign declarations.
+-- Renders module descriptions as JavaScript imports, using Node package @ffi@.
+--
+-- See <https://github.com/rbranson/node-ffi>
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.Haskell ( 
+module Language.Modulo.JavaScript ( 
   ) where

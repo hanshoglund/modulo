@@ -14,10 +14,7 @@ description:
     description language. The idea is to specify functionality in the module language 
     and implement it in any language that supports C-style calling conventions. 
     
-    Extensions will be able to generate language bindings for various languages
-    including Haskell and Common Lisp.
-    
-    See also Typo.
+    This package include generators for C, Haskell and Common Lisp.
 
 library                    
     build-depends: 
@@ -28,8 +25,9 @@ library
     exposed-modules:
         Language.Modulo
         Language.Modulo.C
-        Language.Modulo.Haskell
         Language.Modulo.Lisp
+        Language.Modulo.Haskell
+        Language.Modulo.JavaScript
         Language.Modulo.Parser
         Language.Modulo.Util
 

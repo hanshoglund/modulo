@@ -10,6 +10,8 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
+-- Renders module descriptions as C header files.
+--
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.C (
@@ -35,6 +37,7 @@ import Data.Semigroup
 import Language.Modulo
 
 import Language.C.Syntax.AST
+import Language.C.Syntax.Constants
 import Language.C.Parser
 import Language.C.Pretty
 import Language.C.Data.Node
@@ -359,48 +362,51 @@ convertDecl st (GlobalDecl n v t)  = error "Not supported yet"
 
 
 
-convertType :: CStyle -> Type -> (CTypeSpec,Int)
+convertType :: CStyle -> Type -> (CTypeSpec, [CDerivedDeclr])
 convertType st (AliasType n) = convertAlias st n
 convertType st (PrimType t)  = convertPrimType st t
 convertType st (RefType t)   = convertRefType st t
 convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
-convertAlias :: CStyle -> Name -> (CTypeSpec,Int)
-convertAlias st n = (alias, 0)
+convertAlias :: CStyle -> Name -> (CTypeSpec, [CDerivedDeclr])
+convertAlias st n = (alias, [])
     where
         alias = CTypeDef (ident n) defInfo
 
-convertPrimType :: CStyle -> PrimType -> (CTypeSpec,Int)
-convertPrimType st t = (typ, 0)
+convertPrimType :: CStyle -> PrimType -> (CTypeSpec, [CDerivedDeclr])
+convertPrimType st t = (typ, [])
     where
         typ = CVoidType defInfo -- TODO
 
-convertRefType :: CStyle -> RefType -> (CTypeSpec,Int)
-convertRefType st (Pointer t) = (typ, 0)
+convertRefType :: CStyle -> RefType -> (CTypeSpec, [CDerivedDeclr])
+convertRefType st (Pointer t) = (typ, [CPtrDeclr [] defInfo] ++ ds)
     where
-        (typ,_) = convertType st t
-convertRefType st (Array t n) = (typ, 0)
+        (typ, ds) = convertType st t
+convertRefType st (Array t n) = (typ, [CArrDeclr [] size defInfo] ++ ds)
     where
-        (typ,_) = convertType st t
+        size = (CArrSize True (CConst (CIntConst (fromIntegral n) defInfo)))
+        (typ, ds) = convertType st t
 
-convertFunType :: CStyle -> FunType -> (CTypeSpec,Int)
-convertFunType st (Function as r) = (typ,0)
-    where
-        (typ,_) = convertType st r
+convertFunType :: CStyle -> FunType -> (CTypeSpec, [CDerivedDeclr])
+convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ ds)
+    where                                                             
+        args = [error "Function arguments"] 
+        -- TODO run convertType and use resulting CTypeSpec ++ CDerivedDeclr to build new CDecl
+        (typ, ds) = convertType st r
 
-convertCompType :: CStyle -> CompType -> (CTypeSpec,Int)
-convertCompType st (Enum as) = (typ,0)
+convertCompType :: CStyle -> CompType -> (CTypeSpec, [CDerivedDeclr])
+convertCompType st (Enum as) = (typ, [])
     where                            
         typ = CEnumType enum defInfo
         enum = CEnum (Just $ ident "") (Just names) [] defInfo
         names = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
-convertCompType st (Struct as) = (typ,0)
+convertCompType st (Struct as) = (typ, [])
     where                              
         typ = CSUType struct defInfo
         struct = CStruct CStructTag (Just $ ident "") (Just decls) [] defInfo
         decls  = undefined
-convertCompType st (Union as) = (typ,0)
+convertCompType st (Union as) = (typ, [])
     where                              
         typ = CSUType union defInfo
         union  = CStruct CUnionTag (Just $ ident "") (Just decls) [] defInfo
@@ -535,7 +541,12 @@ deriving instance Show CEnum
 deriving instance Show CStructUnion
 deriving instance Show CStructTag
 
-
+instance Num CInteger where
+    (CInteger a r f) + (CInteger b _ _) = CInteger (a+b) r f
+    (CInteger a r f) * (CInteger b _ _) = CInteger (a*b) r f
+    abs (CInteger a r f)                = CInteger (abs a) r f
+    signum (CInteger a r f)             = CInteger (signum a) r f
+    fromInteger a                       = CInteger a DecRepr noFlags
 
 
 concatSep :: [a] -> [[a]] -> [a]
