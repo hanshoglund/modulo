@@ -39,6 +39,7 @@ data LispStyle =
 -- CFFI can only deal with flat structs/unions
 -- Can we unflatten nested struct/union types?
 -- Or should we use a codegen monad to gather defcXX declarations?
+-- Or just fail and let the user rewrite manually
     
 lispType :: LispStyle -> Type -> Lisp
 lispType st (AliasType n) = lispAlias st n

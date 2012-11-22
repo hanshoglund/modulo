@@ -356,11 +356,19 @@ convertTopLevel st (Module n is ds) = CTranslUnit cds defInfo
         cds = map (CDeclExt . convertDecl st) ds
 
 convertDecl :: CStyle -> Decl -> CDecl
-convertDecl st (TypeDecl n t)      = notSupported "Type decls"      -- typedef T N;
+convertDecl st (TypeDecl n t)      = convertTypeDecl st n t         -- typedef T N;
 convertDecl st (FunctionDecl n t)  = notSupported "Function decls"  -- T n (as);
 convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
 convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
+
+convertTypeDecl :: CStyle -> Name -> Type -> CDecl             
+convertTypeDecl st n t = CDecl spec decList defInfo
+    where
+        (typ, decl) = convertType st t
+        spec    = [CStorageSpec (CTypedef defInfo)] ++ map CTypeSpec typ
+        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        decList = [topLevel declr]
 
 
 -- | 
@@ -378,7 +386,9 @@ convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: CStyle -> Name -> ([CTypeSpec], [CDerivedDeclr])
-convertAlias st n = ([CTypeDef (ident n) defInfo], [])
+convertAlias st n = (alias, [])
+    where
+        alias = [CTypeDef (ident n) defInfo]
 
 convertPrimType :: CStyle -> PrimType -> ([CTypeSpec], [CDerivedDeclr])
 convertPrimType st t = (prim t, [])
@@ -414,18 +424,19 @@ convertPrimType st t = (prim t, [])
 
 
 convertRefType :: CStyle -> RefType -> ([CTypeSpec], [CDerivedDeclr])
-convertRefType st (Pointer t) = (typ, [CPtrDeclr [] defInfo] ++ ds)
+convertRefType st (Pointer t) = (typ, [CPtrDeclr [] defInfo] ++ decls)
     where
-        (typ, ds) = convertType st t
-convertRefType st (Array t n) = (typ, [CArrDeclr [] size defInfo] ++ ds)
+        (typ, decls) = convertType st t
+convertRefType st (Array t n) = (typ, [CArrDeclr [] size defInfo] ++ decls)
     where
-        size = (CArrSize True (CConst (CIntConst (fromIntegral n) defInfo)))
-        (typ, ds) = convertType st t
+        size = (CArrSize isStatic (CConst (CIntConst (fromIntegral n) defInfo)))
+        isStatic = False
+        (typ, decls) = convertType st t
 
 convertFunType :: CStyle -> FunType -> ([CTypeSpec], [CDerivedDeclr])
-convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ ds)
+convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ decls)
     where                                                             
-        (typ, ds) = convertType st r
+        (typ, decls) = convertType st r
         args = [] :: [CDecl] -- TODO
 
 convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])
