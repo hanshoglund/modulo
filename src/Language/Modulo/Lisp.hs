@@ -10,6 +10,8 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
+-- Renders module descriptions as Common Lisp (CFFI) declarations.
+--
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Lisp ( 
@@ -50,10 +52,11 @@ lispAlias st n = keyword n --(mangleType st n)
 
 lispPrimType :: LispStyle -> PrimType -> Lisp
 lispPrimType st Void       = keyword "void"
-lispPrimType st Size       = keyword (error "size-types")     -- TODO
-lispPrimType st Ptrdiff    = keyword (error "size-types")
-lispPrimType st Intptr     = keyword (error "size-types") 
-lispPrimType st UIntptr    = keyword (error "size-types")
+-- CFFI does not support these 
+lispPrimType st Size       = keyword (error "Can not use size types with Lisp")
+lispPrimType st Ptrdiff    = keyword (error "Can not use size types with Lisp")
+lispPrimType st Intptr     = keyword (error "Can not use size types with Lisp") 
+lispPrimType st UIntptr    = keyword (error "Can not use size types with Lisp")
 lispPrimType st Char       = keyword "char" 
 lispPrimType st Short      = keyword "short" 
 lispPrimType st Int        = keyword "int" 
