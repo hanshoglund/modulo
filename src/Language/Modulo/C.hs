@@ -357,7 +357,7 @@ convertTopLevel st (Module n is ds) = CTranslUnit cds defInfo
 
 convertDecl :: CStyle -> Decl -> CDecl
 convertDecl st (TypeDecl n t)      = declTypeDef st n t             -- typedef T N;
-convertDecl st (FunctionDecl n t)  = notSupported "Function decls"  -- T n (as);
+convertDecl st (FunctionDecl n t)  = declFun st n t                 -- T n (as);
 convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
 convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
@@ -367,6 +367,22 @@ declTypeDef st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
         spec    = [CStorageSpec (CTypedef defInfo)] ++ map CTypeSpec typ
+        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        decList = [topLevelDeclr declr]
+
+declVar :: CStyle -> Name -> Type -> CDecl             
+declVar st n t = CDecl spec decList defInfo
+    where
+        (typ, decl) = convertType st t
+        spec    = [] ++ map CTypeSpec typ
+        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        decList = [topLevelDeclr declr]
+
+declFun :: CStyle -> Name -> FunType -> CDecl             
+declFun st n t = CDecl spec decList defInfo
+    where
+        (typ, decl) = convertFunType st t
+        spec    = [] ++ map CTypeSpec typ
         declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
