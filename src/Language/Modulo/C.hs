@@ -303,6 +303,7 @@ renderModuleStyle style mod = (header, decls, footer)
         footer = convertFooter style mod
 
 
+-------------------------------------------------------------------------------------
 -- Header and footer
 
 convertHeader :: CStyle -> Module -> String
@@ -346,6 +347,7 @@ convertFooter style mod = mempty
 
 
 
+-------------------------------------------------------------------------------------
 -- Top-level declarations
 
 convertTopLevel :: CStyle -> Module -> CTranslUnit
@@ -458,12 +460,10 @@ convertCompType st (BitField as) = notSupported "Bitfields"
 
 
 
--- convertValue :: CStyle -> Value -> CConst ??
 
 
-
-
--- Helpers to generate the C declarations
+-------------------------------------------------------------------------------------
+-- Util
 
 -- | A C identifier
 ident :: String -> Ident
