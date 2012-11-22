@@ -55,16 +55,16 @@ module Doremir.Audio.Dispatcher
   // type Foo;
 
   // Function declarations
-  // plus : (Int, Int) -> Int;
-  // fib : (Int) -> Int;
+  plus : (Int, Int) -> Int;
+  fib : (Int) -> Int;
 
   // TODO
   // Constant declarations
   // const pi = 3.1415 : Int;
   // var errNo : Int;
   
-  // fromVoid : () -> Int;
-  // toVoid : Int -> ();
+  fromVoid : () -> Int;
+  toVoid : (Int) -> Void;
   // compose : ((B) -> C) -> ((A) -> B) -> (A) -> C;
 }
 
