@@ -5,6 +5,9 @@ module Data.List
     
     type Elem   = Void*;
     type Filter = Void*;
+    type Eq     = Void*;
+    type Ord    = Void*;
+    type Num    = Void*;
     type ListT  = struct { x : Int }; // TODO get rid of
     type List = struct { 
         head : Elem, 
@@ -23,7 +26,7 @@ module Data.List
     lenght  : (List) -> Int;
 
     reverse : (List) -> List;
-    sort    : (List) -> List;
+    sort    : (Ord, List) -> List;
 
     reverse         : (List) -> List;
     intersperse     : (Elem, List) -> List;
@@ -36,31 +39,21 @@ module Data.List
     or              : (List) -> Bool;
     any             : (Filter, List) -> Bool;
     all             : (Filter, List) -> Bool;
-    // sum             : Num a => List -> a
-    // product         : Num a => List -> a
-    // maximum         : Ord a => List -> a
-    // minimum         : Ord a => List -> a
-    // iterate         : (a -> a) -> a -> List
-    // repeat          : a -> List
-    // replicate       : Int -> a -> List
-    // cycle           : List -> List
-    // take            : Int -> List -> List
-    // drop            : Int -> List -> List
-    // splitAt         : Int -> List -> (List, List)
-    // takeWhile       : (a -> Bool) -> List -> List
-    // dropWhile       : (a -> Bool) -> List -> List
-    // dropWhileEnd    : (a -> Bool) -> List -> List
-    // span            : (a -> Bool) -> List -> (List, List)
-    // break           : (a -> Bool) -> List -> (List, List)
-    // stripPrefix     : Eq a => List -> List -> Maybe List
-    // group           : Eq a => List -> [List]
-    // inits           : List -> [List]
-    // tails           : List -> [List]
-    // isPrefixOf      : Eq a => List -> List -> Bool
-    // isSuffixOf      : Eq a => List -> List -> Bool
-    // isInfixOf       : Eq a => List -> List -> Bool
-    // elem            : Eq a => a -> List -> Bool
-    // notElem         : Eq a => a -> List -> Bool
+    sum             : (Num, List) -> Elem;
+    product         : (Num, List) -> Elem;
+    maximum         : (Ord, List) -> Elem;
+    minimum         : (Ord, List) -> Elem;
+    // iterate         : (a -> a) -> a -> List;
+    repeat          : (Elem) -> List;
+    replicate       : (Int, Elem) -> List;
+    cycle           : (List) -> List;
+    take            : (Int, List) -> List;
+    drop            : (Int, List) -> List;
+    isPrefixOf      : (Eq, List, List) -> Bool;
+    isSuffixOf      : (Eq, List, List) -> Bool;
+    isInfixOf       : (Eq, List, List) -> Bool;
+    elem            : (Eq, Elem, List) -> Bool;
+    notElem         : (Eq, Elem, List) -> Bool;
     // find            : (a -> Bool) -> List -> Maybe a
     // filter          : (a -> Bool) -> List -> List
     // partition       : (a -> Bool) -> List -> (List, List)
@@ -75,14 +68,8 @@ module Data.List
     // unwords         : [String] -> String
     // nub             : Eq a => List -> List
     // delete          : Eq a => a -> List -> List
-    // (\\)            : Eq a => List -> List -> List
-    // union           : Eq a => List -> List -> List
-    // intersect       : Eq a => List -> List -> List
     // sort            : Ord a => List -> List
     // insert          : Ord a => a -> List -> List
-    // nubBy           : (a -> a -> Bool) -> List -> List
-    // deleteBy        : (a -> a -> Bool) -> a -> List -> List
-    // deleteFirstsBy  : (a -> a -> Bool) -> List -> List -> List
     // unionBy         : (a -> a -> Bool) -> List -> List -> List
     // intersectBy     : (a -> a -> Bool) -> List -> List -> List
     // groupBy         : (a -> a -> Bool) -> List -> [List]
