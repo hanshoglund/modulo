@@ -129,8 +129,8 @@ stdStyle = CStyle
     (withPrefix "_" . concatSep "_" . fmap toUpper)
     (stdInnerHeader stdStyle) 
     (stdInnerFooter stdStyle)
-    (concatSep "_")
-    (concatSep "_")
+    (withSuffix "_" . concatSep "_" . fmap toLower)
+    (withSuffix "_" . concatSep "_" . fmap toLower)
 
     (withSuffix "_t" . concatSep "_")
     (withSuffix "_t" . concatSep "_")
@@ -309,9 +309,10 @@ renderModule = renderModuleStyle def
 renderModuleStyle :: CStyle -> Module -> (String, CTranslUnit, String)
 renderModuleStyle style mod = (header, decls, footer)
     where
-        header = convertHeader style mod
-        decls  = convertTopLevel style mod
-        footer = convertFooter style mod
+        header = convertHeader style mod'
+        decls  = convertTopLevel style mod'
+        footer = convertFooter style mod'
+        mod' = renameModule style mod
 
 
 -------------------------------------------------------------------------------------
@@ -365,12 +366,49 @@ convertFooter st mod = mempty
 renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
-        renameDecl st (TypeDecl n t)      = TypeDecl n t
-        renameDecl st (FunctionDecl n t)  = FunctionDecl n t
-        renameDecl st (TagDecl t)         = TagDecl t
-        renameDecl st (ConstDecl n v t)   = ConstDecl n v t
-        renameDecl st (GlobalDecl n v t)  = GlobalDecl n v t
+        typePrefix     = typePrefixMangler st . NonEmpty.toList $ getModuleName n
+        valuePrefix    = valuePrefixMangler st . NonEmpty.toList $ getModuleName n
+        convertType    = withPrefix typePrefix . implStructNameMangler st . unmangle -- TODO disamb struct enum etc
+        convertFun     = withPrefix valuePrefix . functionNameMangler st . unmangle
+        convertConst   = withPrefix valuePrefix . constNameMangler st . unmangle
+        convertGlobal  = withPrefix valuePrefix . globalNameMangler st . unmangle
+        
+        convertStructField = structFieldMangler st . unmangle
+        convertUnionField  = unionFieldMangler st . unmangle
+        convertEnumField   = enumFieldMangler st . unmangle
 
+        
+        renameDecl st (TypeDecl n t)      = TypeDecl (convertType n) (renameType st t)
+        renameDecl st (FunctionDecl n t)  = FunctionDecl (convertFun n) (renameFunType st t)
+        renameDecl st (TagDecl t)         = TagDecl (renameType st t)
+        renameDecl st (ConstDecl n v t)   = ConstDecl (convertConst n) v (renameType st t)
+        renameDecl st (GlobalDecl n v t)  = GlobalDecl (convertGlobal n) v (renameType st t)
+
+        renameType st (PrimType t)  = PrimType t
+        renameType st (AliasType n) = AliasType $ renameAlias st n
+        renameType st (RefType t)   = RefType   $ renameRefType st t
+        renameType st (FunType t)   = FunType   $ renameFunType st t
+        renameType st (CompType t)  = CompType  $ renameCompType st t
+
+        renameAlias :: CStyle -> Name -> Name
+        renameAlias st n = convertType n
+        
+        renameRefType :: CStyle -> RefType -> RefType
+        renameRefType st (Pointer t) = Pointer (renameType st t)
+        renameRefType st (Array t n) = Array (renameType st t) n
+        
+        renameFunType :: CStyle -> FunType -> FunType
+        renameFunType st (Function as r) = Function (fmap (renameType st) as) (renameType st r)
+        
+        renameCompType :: CStyle -> CompType -> CompType
+        renameCompType st (Enum ns)     = Enum   $ fmap convertEnumField ns
+        renameCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (convertStructField n, renameType st t)) ns
+        renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (convertUnionField n, renameType st t)) ns
+        renameCompType st (BitField ns) = notSupported "Bit-fields"
+        
+
+        unmangle :: String -> [String]
+        unmangle x = [toLower x] -- TODO detect case etc
 
 -------------------------------------------------------------------------------------
 -- Top-level declarations
