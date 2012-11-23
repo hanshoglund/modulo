@@ -1,4 +1,8 @@
 
+/**
+    @defgroup Std
+    This module imports the standard C namespaces.
+ */
 module Std
 {
     import assert;

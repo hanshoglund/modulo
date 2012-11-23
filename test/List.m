@@ -1,5 +1,21 @@
 
-module Data.List 
+/**
+    @defgroup DataList Data structures: Lists
+    @brief    
+        Provides immutable lists.
+              
+            SclListBuilder b = scl_list_build();
+            scl_list_build_append(b, 1);
+            scl_list_build_append(b, 2);
+            scl_list_build_append(b, 3);
+            scl_list_build_append(b, 4);
+            SclList xs = scl_list_build_finish();
+            
+            scl_list_fold_left(scl_print, scl_nil, xs);
+            
+        That was code!
+ */
+module Data.List
 {
     import Std;
     

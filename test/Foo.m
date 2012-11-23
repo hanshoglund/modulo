@@ -1,4 +1,8 @@
 
+/**
+    @defgroup Bar
+    This is a test module.
+ */
 module Foo.Bar
 {
   import Std;

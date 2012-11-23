@@ -10,6 +10,9 @@ all:
 	cclint -I test test/Foo.h;                              \
 	cclint -I test test/List.h;
 
+doc:
+	doxygen test/Doxyfile
+
 clean:
 	rm test/*.h; \
 	rm test/*.lisp;
