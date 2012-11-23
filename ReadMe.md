@@ -65,7 +65,7 @@ eventual import declarations, followed by all other declarations. Here is an exa
 
 Like C, the module language uses structural typing for pointers and functions, but
 nominal typing for structures and unions. Thus in the following example values of type
-A@ and @B@ are interchangeable, but values of type @C@ and @D@ are not.
+`A` and `B` are interchangeable, but values of type `C` and `D` are not.
 
     type A = Ptr Int
     type B = Ptr Int
