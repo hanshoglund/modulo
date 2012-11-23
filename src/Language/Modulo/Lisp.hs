@@ -35,36 +35,90 @@ data LispStyle =
         mangleType :: String -> String
     }
 
+stdLispStyle = LispStyle { 
+    cStyle = stdStyle,
+    mangleType = id
+    }
+
+-- | Default instance using 'stdStyle'.
+instance Default LispStyle where
+    def = stdLispStyle
+-- | Left-biased Semigroup instance.
+instance Semigroup LispStyle where
+    a <> b = a
+-- | Left-biased Monoid instance.
+instance Monoid LispStyle where
+    mempty  = def
+    mappend = (<>)
+
+-- |
+-- Print a module using the default style.
+--
+printModuleLisp :: Module -> String
+printModuleLisp = printModuleLispStyle def
+
+-- |
+-- Print a module using the specified style.
+--
+printModuleLispStyle :: LispStyle -> Module -> String
+printModuleLispStyle style = show . renderModuleLispStyle style
+
+-- |
+-- Render a module using the default style.
+--
+-- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+--
+renderModuleLisp :: Module -> Lisp
+renderModuleLisp = renderModuleLispStyle def
+
+-- |
+-- Render a module using the specified style.
+--
+-- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+--
+renderModuleLispStyle :: LispStyle -> Module -> Lisp
+renderModuleLispStyle style mod = nil
+
+
+convertTopLevel :: LispStyle -> Module -> Lisp
+convertTopLevel st (Module n is ds) = mconcat cds
+    where
+        cds = map (convertDecl st) ds
+
+convertDecl :: LispStyle -> Decl -> Lisp
+convertDecl st (TypeDecl n t)      = undefined                      -- typedef T N;
+convertDecl st (FunctionDecl n t)  = undefined                      -- T n (as);
+convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
+convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
+convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
+
+
+
+
 -- TODO
 -- CFFI can only deal with flat structs/unions
 -- Can we unflatten nested struct/union types?
 -- Or should we use a codegen monad to gather defcXX declarations?
 -- Or just fail and let the user rewrite manually
     
-lispType :: LispStyle -> Type -> Lisp
-lispType st (AliasType n) = lispAlias st n
-lispType st (PrimType t)  = lispPrimType st t
-lispType st (RefType t)   = lispRefType st t
-lispType st (FunType t)   = lispFunType st t
-lispType st (CompType t)  = lispCompType st t
+convertType :: LispStyle -> Type -> Lisp
+convertType st (AliasType n) = lispAlias st n
+convertType st (PrimType t)  = lispPrimType st t
+convertType st (RefType t)   = convertRefType st t
+convertType st (FunType t)   = convertFunType st t
+convertType st (CompType t)  = convertCompType st t
 
 lispAlias :: LispStyle -> Name -> Lisp
-lispAlias st n = keyword n --(mangleType st n)
+lispAlias st n = keyword n
 
 lispPrimType :: LispStyle -> PrimType -> Lisp
 lispPrimType st Void       = keyword "void"
 lispPrimType st Bool       = keyword "bool"
--- CFFI does not support these 
-lispPrimType st Size       = error "Can not use size types with CFFI"
-lispPrimType st Ptrdiff    = error "Can not use size types with CFFI"
-lispPrimType st Intptr     = error "Can not use size types with CFFI" 
-lispPrimType st UIntptr    = error "Can not use size types with CFFI"
 lispPrimType st Char       = keyword "char" 
 lispPrimType st Short      = keyword "short" 
 lispPrimType st Int        = keyword "int" 
 lispPrimType st Long       = keyword "long" 
 lispPrimType st LongLong   = keyword "long-long"
-lispPrimType st SChar      = error "Can not use signed char types with CFFI" 
 lispPrimType st UChar      = keyword "unsigned-char" 
 lispPrimType st UShort     = keyword "unsigned-short" 
 lispPrimType st UInt       = keyword "unsigned-int" 
@@ -81,20 +135,25 @@ lispPrimType st UInt8      = keyword "uint8"
 lispPrimType st UInt16     = keyword "uint16" 
 lispPrimType st UInt32     = keyword "uint32" 
 lispPrimType st UInt64     = keyword "uint64"
-    
+-- CFFI does not support these 
+lispPrimType st Size       = error "Can not use size types with CFFI"
+lispPrimType st Ptrdiff    = error "Can not use size types with CFFI"
+lispPrimType st Intptr     = error "Can not use size types with CFFI" 
+lispPrimType st UIntptr    = error "Can not use size types with CFFI"
+lispPrimType st SChar      = error "Can not use signed char types with CFFI" 
 
-lispRefType :: LispStyle -> RefType -> Lisp
-lispRefType st (Pointer t) = List [keyword "pointer", lispType st t]
-lispRefType st (Array t n) = undefined -- TODO
+convertRefType :: LispStyle -> RefType -> Lisp
+convertRefType st (Pointer t) = List [keyword "pointer", convertType st t]
+convertRefType st (Array t n) = convertType st voidPtr
 
-lispFunType :: LispStyle -> FunType -> Lisp
-lispFunType st (Function as r) = lispType st voidPtr
+convertFunType :: LispStyle -> FunType -> Lisp
+convertFunType st (Function as r) = convertType st voidPtr
 
-lispCompType :: LispStyle -> CompType -> Lisp
-lispCompType st (Enum as)       = undefined
-lispCompType st (Struct as)     = undefined
-lispCompType st (Union as)      = undefined
-lispCompType st (BitField as)   = error "Not implemented: bitfields" -- TODO
+convertCompType :: LispStyle -> CompType -> Lisp
+convertCompType st (Enum as)       = convertType st voidPtr
+convertCompType st (Struct as)     = convertType st voidPtr
+convertCompType st (Union as)      = convertType st voidPtr
+convertCompType st (BitField as)   = error "Not implemented: bitfields" -- TODO
 
 
 
@@ -103,3 +162,25 @@ keyword x = Symbol (pack $ ":" ++ x)
 
 voidPtr = RefType (Pointer $ PrimType Void)
 
+
+
+instance Default Lisp where
+    def = nil
+instance Semigroup Lisp where
+    (<>) = appendLisp
+instance Monoid Lisp where
+    mempty  = def
+    mappend = (<>)
+
+appendLisp :: Lisp -> Lisp -> Lisp
+appendLisp a b = List (as ++ bs)
+    where
+        (List as) = assureList a
+        (List bs) = assureList b
+
+assureList :: Lisp -> Lisp
+assureList (List as)      = List as
+assureList (DotList as a) = DotList as a
+assureList x              = List [x]
+
+notSupported x = error $ "Not supported yet: " ++ x
