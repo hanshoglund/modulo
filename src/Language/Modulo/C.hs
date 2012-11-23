@@ -101,7 +101,7 @@ instance Default CStyle where
 -- | Left-biased Semigroup instance.
 instance Semigroup CStyle where
     a <> b = a
--- |Left-biased Monoid instance.
+-- | Left-biased Monoid instance.
 instance Monoid CStyle where
     mempty  = def
     mappend = (<>)
