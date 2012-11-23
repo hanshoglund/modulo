@@ -22,8 +22,8 @@ module Language.Modulo.C (
         stdStyle,
         cairoStyle,
         gtkStyle,
-        appleStyle,
-        haskellStyle,
+        -- appleStyle,
+        -- haskellStyle,
         -- ** Rendering
         printModule,
         renderModule,
@@ -68,6 +68,8 @@ data CStyle =
         importStyle         :: ImportStyle,          -- ^ How to write import declarations
         importDirective     :: String,               -- ^ Import directive, usually @include@.
         guardMangler        :: [String] -> String,   -- ^ Mangler for names of header guards
+        innerHeader         :: [String] -> String,   -- ^ Inner header mangler
+        innerFooter         :: [String] -> String,   -- ^ Inner footer mangler
 
         -- Prefix
         typePrefixMangler   :: [String] -> String,   -- ^ Prefix for types
@@ -106,6 +108,9 @@ instance Monoid CStyle where
     mempty  = def
     mappend = (<>)
 
+stdInnerHeader st ns = "/** @addtogroup " ++ concat ns ++ "\n    @{\n */"
+stdInnerFooter st ns = "/** @} */"
+
 -- |
 -- Style used in the C standard library.
 --
@@ -122,6 +127,8 @@ stdStyle :: CStyle
 stdStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (stdInnerHeader stdStyle) 
+    (stdInnerFooter stdStyle)
     (concatSep "_")
     (concatSep "_")
 
@@ -153,6 +160,8 @@ cairoStyle :: CStyle
 cairoStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (stdInnerHeader cairoStyle) 
+    (stdInnerFooter cairoStyle)
     (concatSep "_")
     (concatSep "_")
 
@@ -185,6 +194,8 @@ gtkStyle :: CStyle
 gtkStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (stdInnerHeader gtkStyle) 
+    (stdInnerFooter gtkStyle)
     (concatSep "_")
     (concatSep "_")
 
@@ -200,70 +211,70 @@ gtkStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
--- |
--- Style used in Apple Frameworks.
---
--- * Types:     @ PFooBar @
---
--- * Opaques:   @ PFooBarOpaque @
---
--- * Functions: @ PFooBar @
---
--- * Constants: @ kPFooBar @
---
--- * Fields:    @ mFooBar @
-appleStyle :: CStyle
-appleStyle = CStyle
-    Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpper)
-    capitalCase
-    capitalCase
-
-    capitalCase
-    capitalCase
-    capitalCase
-    capitalCase
-
-    (withPrefix "m" . capitalCase)
-    (withPrefix "m" . capitalCase)
-    (withPrefix "m" . capitalCase)
-
-    (withPrefix "k" . capitalCase)
-    (withPrefix "g" . capitalCase)
-    capitalCase
-
--- |
--- Style similar to Haskell conventions.
---
--- * Types:     @ PFooBar @
---
--- * Opaques:   @ PFooBarOpaque @
---
--- * Functions: @ pfooBar @
---
--- * Constants: @ pfooBar @
---
--- * Fields:    @ pfooBar @
-haskellStyle :: CStyle
-haskellStyle = CStyle
-    Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpper)
-    capitalCase
-    capitalCase
-
-    capitalCase
-    capitalCase
-    capitalCase
-    capitalCase
-
-    mixedCase
-    mixedCase
-    mixedCase
-
-    mixedCase
-    mixedCase
-    mixedCase
-
+-- -- |
+-- -- Style used in Apple Frameworks.
+-- --
+-- -- * Types:     @ PFooBar @
+-- --
+-- -- * Opaques:   @ PFooBarOpaque @
+-- --
+-- -- * Functions: @ PFooBar @
+-- --
+-- -- * Constants: @ kPFooBar @
+-- --
+-- -- * Fields:    @ mFooBar @
+-- appleStyle :: CStyle
+-- appleStyle = CStyle
+--     Ifndef SystemPath "include"
+--     (withPrefix "_" . concatSep "_" . fmap toUpper)
+--     capitalCase
+--     capitalCase
+-- 
+--     capitalCase
+--     capitalCase
+--     capitalCase
+--     capitalCase
+-- 
+--     (withPrefix "m" . capitalCase)
+--     (withPrefix "m" . capitalCase)
+--     (withPrefix "m" . capitalCase)
+-- 
+--     (withPrefix "k" . capitalCase)
+--     (withPrefix "g" . capitalCase)
+--     capitalCase
+-- 
+-- -- |
+-- -- Style similar to Haskell conventions.
+-- --
+-- -- * Types:     @ PFooBar @
+-- --
+-- -- * Opaques:   @ PFooBarOpaque @
+-- --
+-- -- * Functions: @ pfooBar @
+-- --
+-- -- * Constants: @ pfooBar @
+-- --
+-- -- * Fields:    @ pfooBar @
+-- haskellStyle :: CStyle
+-- haskellStyle = CStyle
+--     Ifndef SystemPath "include"
+--     (withPrefix "_" . concatSep "_" . fmap toUpper)
+--     capitalCase
+--     capitalCase
+-- 
+--     capitalCase
+--     capitalCase
+--     capitalCase
+--     capitalCase
+-- 
+--     mixedCase
+--     mixedCase
+--     mixedCase
+-- 
+--     mixedCase
+--     mixedCase
+--     mixedCase
+--                 
 
 
 -------------------------------------------------------------------------------------
@@ -312,8 +323,9 @@ convertHeader st mod = mempty
     ++ guardBegin (guardStyle st) guard
     ++ "\n"
     ++ imports
-    ++ "\n"
-    ++ "\n"
+    ++ "\n\n"
+    ++ innerHeader st name
+    ++ "\n\n"
     where
         name = NonEmpty.toList . getModuleName . modName $ mod
         guard = guardMangler st name
@@ -337,6 +349,8 @@ guardEnd Ifndef name = mempty
 
 convertFooter :: CStyle -> Module -> String
 convertFooter st mod = mempty
+    ++ "\n\n"
+    ++ innerFooter st name
     ++ "\n\n"
     ++ guardEnd (guardStyle st) guard
     ++ "\n\n"
