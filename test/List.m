@@ -8,16 +8,12 @@ module Data.List
     type Eq     = Void*;
     type Ord    = Void*;
     type Num    = Void*;
-    type ListT  = struct { x : Int }; // TODO get rid of
-    type List = struct { 
-        head : Elem, 
-        tail : ListT }*;
+    type ListT  = Void*;
+    type List   = struct { head : Elem, tail : ListT }*;
             
-    // type List = { nil : List* | head : List*, tail : T }
-
-    nil     : () -> List;            //< The empty list
-    cons    : (Elem, List) -> List;  //< The empty list
-    head    : (List) -> Elem;        //< The empty list
+    nil     : () -> List;
+    cons    : (Elem, List) -> List;
+    head    : (List) -> Elem;
     tail    : (List) -> List;
     init    : (List) -> List;
     last    : (List) -> Elem;
