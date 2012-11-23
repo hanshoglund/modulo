@@ -359,10 +359,22 @@ convertFooter st mod = mempty
         guard = guardMangler st name
 
 
+-------------------------------------------------------------------------------------
+-- Renaming
+
+renameModule :: CStyle -> Module -> Module
+renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
+    where
+        renameDecl st (TypeDecl n t)      = TypeDecl n t
+        renameDecl st (FunctionDecl n t)  = FunctionDecl n t
+        renameDecl st (TagDecl t)         = TagDecl t
+        renameDecl st (ConstDecl n v t)   = ConstDecl n v t
+        renameDecl st (GlobalDecl n v t)  = GlobalDecl n v t
 
 
 -------------------------------------------------------------------------------------
 -- Top-level declarations
+
 
 convertTopLevel :: CStyle -> Module -> CTranslUnit
 convertTopLevel st (Module n is ds) = CTranslUnit cds defInfo
