@@ -5,6 +5,8 @@
 module Main where
 
 import Control.Monad (when)
+import Data.List (find)
+import Data.Maybe (fromMaybe)
 import System.IO
 import System.Exit
 import System.Environment
@@ -17,11 +19,20 @@ import Language.Modulo.C
 import Language.Modulo.Lisp
 import Language.Modulo.Parser
 
-data ModOutputLang
+data ModLang
     = C
     | Lisp
     | Haskell
-    deriving (Eq, Show)
+    deriving (Eq, Read, Show)
+readModLang Nothing = Lang C
+readModLang (Just s) = Lang $ case s of
+    "l"         -> Lisp
+    "lisp"      -> Lisp
+    "Lisp"      -> Lisp
+    "hs"        -> Haskell
+    "haskell"   -> Haskell
+    "Haskell"   -> Haskell
+    _           -> C
 
 data ModCStyle
     = CStyleStd
@@ -34,7 +45,7 @@ data ModCStyle
 data ModOpt
     = Help    
     | Version
-    | Language
+    | Lang { getLang :: ModLang }
     deriving (Eq, Show)
 
 version = "modulo-0.5"
@@ -42,9 +53,10 @@ header  = "Usage: modulo [options] files...\n" ++
           "Options:"
 
 options = [ 
-    (Option ['h'] ["help"]          (NoArg Help)        "Print help and exit"),
-    (Option ['v'] ["version"]       (NoArg Version)     "Print version and exit")
-  ]
+    (Option ['h'] ["help"]       (NoArg Help)         "Print help and exit"),
+    (Option ['v'] ["version"]    (NoArg Version)      "Print version and exit"),
+    (Option ['T'] ["language"])  (OptArg readModLang "LANG") "Output language"
+  ]                                          
     
 main = do
     (opts, args, optErrs) <- getOpt Permute options `fmap` getArgs
@@ -63,11 +75,19 @@ main = do
 runFilter :: [ModOpt] -> IO ()
 runFilter opts = compileFile opts stdin stdout
 
+findLang opts = fmap getLang $ find isLang opts
+    where                                   
+        isLang (Lang _) = True
+        isLang _        = False
+        
+
 compileFile :: [ModOpt] -> Handle -> Handle -> IO ()
 compileFile opts input output = do
+    let lang = fromMaybe C (findLang opts)
+    
     s <- hGetContents input
     let m = parseSafe s
-    let c = printModule m
+    let c = printMod lang m
     hPutStr output c
 
     -- let coreToCore = singleAbs . singleApp
@@ -92,4 +112,8 @@ compileFile opts input output = do
         parseSafe s = case (parse s) of
             Left e -> error $ "Parse error: " ++ show e
             Right m -> m
+        
+        printMod :: ModLang -> Module -> String
+        printMod C    = printModule
+        printMod Lisp = printModuleLisp
                                                  

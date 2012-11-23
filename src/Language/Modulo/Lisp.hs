@@ -14,16 +14,22 @@
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.Lisp ( 
+module Language.Modulo.Lisp (
+        printModuleLisp,
+        printModuleLispStyle,
+        renderModuleLisp,
+        renderModuleLispStyle
   ) where
 
 import Data.Default
 import Data.Semigroup
 import Data.Text(pack)
-
-import Language.Modulo
-import Language.Modulo.C
 import Data.AttoLisp
+
+import Language.Modulo.C
+import Language.Modulo
+
+import qualified Data.List as List
 
 -- import qualified Data.List as List
 -- import qualified Data.Char as Char
@@ -61,14 +67,14 @@ printModuleLisp = printModuleLispStyle def
 -- Print a module using the specified style.
 --
 printModuleLispStyle :: LispStyle -> Module -> String
-printModuleLispStyle style = show . renderModuleLispStyle style
+printModuleLispStyle style = concatSep "\n\n" . map show . renderModuleLispStyle style
 
 -- |
 -- Render a module using the default style.
 --
 -- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
 --
-renderModuleLisp :: Module -> Lisp
+renderModuleLisp :: Module -> [Lisp]
 renderModuleLisp = renderModuleLispStyle def
 
 -- |
@@ -76,21 +82,31 @@ renderModuleLisp = renderModuleLispStyle def
 --
 -- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
 --
-renderModuleLispStyle :: LispStyle -> Module -> Lisp
-renderModuleLispStyle style mod = nil
+renderModuleLispStyle :: LispStyle -> Module -> [Lisp]
+renderModuleLispStyle = convertTopLevel
 
 
-convertTopLevel :: LispStyle -> Module -> Lisp
-convertTopLevel st (Module n is ds) = mconcat cds
+convertTopLevel :: LispStyle -> Module -> [Lisp]
+convertTopLevel st (Module n is ds) = cds
     where
         cds = map (convertDecl st) ds
 
 convertDecl :: LispStyle -> Decl -> Lisp
-convertDecl st (TypeDecl n t)      = undefined                      -- typedef T N;
-convertDecl st (FunctionDecl n t)  = undefined                      -- T n (as);
+convertDecl st (TypeDecl n t)      = declType st n t                -- typedef T N;
+convertDecl st (FunctionDecl n t)  = declFun st n t                 -- T n (as);
 convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
 convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
+
+declType :: LispStyle -> Name -> Type -> Lisp             
+declType st n t = List [symbol "defctype", symbol n, convertType st t]
+
+declFun :: LispStyle -> Name -> FunType -> Lisp             
+declFun st n (Function as r) = List [symbol "defcfun", symbol n, ret]
+    where
+        ret = convertType st r
+        args = []
+
 
 
 
@@ -156,6 +172,8 @@ convertCompType st (Union as)      = convertType st voidPtr
 convertCompType st (BitField as)   = error "Not implemented: bitfields" -- TODO
 
 
+symbol :: String -> Lisp
+symbol = Symbol . pack
 
 keyword :: String -> Lisp
 keyword x = Symbol (pack $ ":" ++ x)
@@ -172,6 +190,9 @@ instance Monoid Lisp where
     mempty  = def
     mappend = (<>)
 
+single :: Lisp -> Lisp
+single a = List [a]
+
 appendLisp :: Lisp -> Lisp -> Lisp
 appendLisp a b = List (as ++ bs)
     where
@@ -184,3 +205,6 @@ assureList (DotList as a) = DotList as a
 assureList x              = List [x]
 
 notSupported x = error $ "Not supported yet: " ++ x
+
+concatSep :: [a] -> [[a]] -> [a]
+concatSep x = List.concat . List.intersperse x
