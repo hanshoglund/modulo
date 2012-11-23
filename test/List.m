@@ -1,6 +1,6 @@
 
 /**
-    @defgroup DataList Data structures: Lists
+    @defgroup SclList Data structures: Lists
     @brief    
         Provides immutable lists.
               
@@ -15,20 +15,21 @@
             
         That was code!
  */
-module Data.List
+module Scl.List
 {
     import Std;
     
-    type Elem   = Void*;
-    type Filter = Void*;
-    type Eq     = Void*;
-    type Ord    = Void*;
-    type Num    = Void*;
-    type ListT  = Void*;
-    type List   = struct { head : Elem, tail : ListT }*;
+    type Elem   = struct { x : Int32 };
+    type Filter = struct { x : Int32 };
+    type Eq     = struct { x : Int32 };
+    type Ord    = struct { x : Int32 };
+    type Num    = struct { x : Int32 };
+    type Builder = struct { x : Int32 };
+    type List   = struct { x : Int32 }*;
             
     nil     : () -> List;
     cons    : (Elem, List) -> List;
+    snoc    : (Elem, List) -> List;
     head    : (List) -> Elem;
     tail    : (List) -> List;
     init    : (List) -> List;
@@ -42,6 +43,10 @@ module Data.List
 
     reverse         : (List) -> List;
     intersperse     : (Elem, List) -> List;
+
+    build           : () -> Builder;
+    builderAdd      : (Elem, Builder) -> Void;
+    builderFinish   : (Builder) -> List;
 
     transpose       : (List) -> List;
     subsequences    : (List) -> List;
