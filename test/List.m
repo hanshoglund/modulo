@@ -1,7 +1,7 @@
 
 module Data.List 
 {
-    import stdbool;
+    import Std;
     
     type Elem   = Void*;
     type Filter = Void*;

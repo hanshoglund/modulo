@@ -1,16 +1,15 @@
 
-module Doremir.Audio.Dispatcher
+module Foo.Bar
 {
-  import stdint;
-  import List;
   import Std;
+  import List;
 
   // Type declarations
 
   type Foo = Int;
   type Bar = [Int* x 10];
   type Baz = [Int x 10]*;
-  type Bat = (Int,[Int x 2]) -> [Int x 10]*;
+  type Bat = (Int, [Int x 2]) -> [Int x 10]*;
   type Nest = struct { 
     x: [[struct { y : Int } x 10] x 20]
   };
@@ -21,6 +20,8 @@ module Doremir.Audio.Dispatcher
   type Curry = (Int) -> Curried*;
   type Hask  = ((Int) -> Int) -> Int;
   type HaskPtr = Hask*;
+
+  // type IntCounter = struct { a : Int, b : (Int) -> Int };
 
   /**
       @name  This is the name.
