@@ -2,6 +2,8 @@
 module Doremir.Audio.Dispatcher
 {
   import stdint;
+  import List;
+  import Std;
 
   // Type declarations
 
