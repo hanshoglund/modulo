@@ -122,45 +122,45 @@ declFun st n (Function as r) = List [symbol "defcfun", symbol n, ret]
 -- Or just fail and let the user rewrite manually
     
 convertType :: LispStyle -> Type -> Lisp
-convertType st (AliasType n) = lispAlias st n
-convertType st (PrimType t)  = lispPrimType st t
+convertType st (AliasType n) = convertAlias st n
+convertType st (PrimType t)  = convertPrimType st t
 convertType st (RefType t)   = convertRefType st t
 convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
-lispAlias :: LispStyle -> Name -> Lisp
-lispAlias st n = keyword n
+convertAlias :: LispStyle -> Name -> Lisp
+convertAlias st n = keyword n
 
-lispPrimType :: LispStyle -> PrimType -> Lisp
-lispPrimType st Void       = keyword "void"
-lispPrimType st Bool       = keyword "bool"
-lispPrimType st Char       = keyword "char" 
-lispPrimType st Short      = keyword "short" 
-lispPrimType st Int        = keyword "int" 
-lispPrimType st Long       = keyword "long" 
-lispPrimType st LongLong   = keyword "long-long"
-lispPrimType st UChar      = keyword "unsigned-char" 
-lispPrimType st UShort     = keyword "unsigned-short" 
-lispPrimType st UInt       = keyword "unsigned-int" 
-lispPrimType st ULong      = keyword "unsigned-long-long" 
-lispPrimType st ULongLong  = keyword "long-long"
-lispPrimType st Float      = keyword "float" 
-lispPrimType st Double     = keyword "double" 
-lispPrimType st LongDouble = keyword "long-double"
-lispPrimType st Int8       = keyword "int8" 
-lispPrimType st Int16      = keyword "int16" 
-lispPrimType st Int32      = keyword "int32" 
-lispPrimType st Int64      = keyword "int64" 
-lispPrimType st UInt8      = keyword "uint8" 
-lispPrimType st UInt16     = keyword "uint16" 
-lispPrimType st UInt32     = keyword "uint32" 
-lispPrimType st UInt64     = keyword "uint64"
+convertPrimType :: LispStyle -> PrimType -> Lisp
+convertPrimType st Void       = keyword "void"
+convertPrimType st Bool       = keyword "bool"
+convertPrimType st Char       = keyword "char" 
+convertPrimType st Short      = keyword "short" 
+convertPrimType st Int        = keyword "int" 
+convertPrimType st Long       = keyword "long" 
+convertPrimType st LongLong   = keyword "long-long"
+convertPrimType st UChar      = keyword "unsigned-char" 
+convertPrimType st UShort     = keyword "unsigned-short" 
+convertPrimType st UInt       = keyword "unsigned-int" 
+convertPrimType st ULong      = keyword "unsigned-long-long" 
+convertPrimType st ULongLong  = keyword "long-long"
+convertPrimType st Float      = keyword "float" 
+convertPrimType st Double     = keyword "double" 
+convertPrimType st LongDouble = keyword "long-double"
+convertPrimType st Int8       = keyword "int8" 
+convertPrimType st Int16      = keyword "int16" 
+convertPrimType st Int32      = keyword "int32" 
+convertPrimType st Int64      = keyword "int64" 
+convertPrimType st UInt8      = keyword "uint8" 
+convertPrimType st UInt16     = keyword "uint16" 
+convertPrimType st UInt32     = keyword "uint32" 
+convertPrimType st UInt64     = keyword "uint64"
 -- CFFI does not support these 
-lispPrimType st Size       = error "Can not use size types with CFFI"
-lispPrimType st Ptrdiff    = error "Can not use size types with CFFI"
-lispPrimType st Intptr     = error "Can not use size types with CFFI" 
-lispPrimType st UIntptr    = error "Can not use size types with CFFI"
-lispPrimType st SChar      = error "Can not use signed char types with CFFI" 
+convertPrimType st Size       = error "Can not use size types with CFFI"
+convertPrimType st Ptrdiff    = error "Can not use size types with CFFI"
+convertPrimType st Intptr     = error "Can not use size types with CFFI" 
+convertPrimType st UIntptr    = error "Can not use size types with CFFI"
+convertPrimType st SChar      = error "Can not use signed char types with CFFI" 
 
 convertRefType :: LispStyle -> RefType -> Lisp
 convertRefType st (Pointer t) = List [keyword "pointer", convertType st t]
