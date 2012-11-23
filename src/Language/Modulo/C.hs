@@ -25,10 +25,10 @@ module Language.Modulo.C (
         appleStyle,
         haskellStyle,
         -- ** Rendering
-        renderModule,
-        renderModuleStyle,
         printModule,
+        renderModule,
         printModuleStyle,
+        renderModuleStyle,
   ) where
 
 import Data.Default

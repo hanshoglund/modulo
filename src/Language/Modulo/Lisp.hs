@@ -15,9 +15,13 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Lisp (
+        -- ** Styles
+        LispStyle(..),
+        stdLispStyle,
+        -- ** Rendering
         printModuleLisp,
-        printModuleLispStyle,
         renderModuleLisp,
+        printModuleLispStyle,
         renderModuleLispStyle
   ) where
 
@@ -72,7 +76,7 @@ printModuleLispStyle style = concatSep "\n\n" . map show . renderModuleLispStyle
 -- |
 -- Render a module using the default style.
 --
--- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+-- Returns a Lisp file, represented as a sequence of S-expressions.
 --
 renderModuleLisp :: Module -> [Lisp]
 renderModuleLisp = renderModuleLispStyle def
@@ -80,7 +84,7 @@ renderModuleLisp = renderModuleLispStyle def
 -- |
 -- Render a module using the specified style.
 --
--- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+-- Returns a Lisp file, represented as a sequence of S-expressions.
 --
 renderModuleLispStyle :: LispStyle -> Module -> [Lisp]
 renderModuleLispStyle = convertTopLevel
