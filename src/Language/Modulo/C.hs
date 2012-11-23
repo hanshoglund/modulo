@@ -243,38 +243,39 @@ gtkStyle = CStyle
 --     (withPrefix "g" . capitalCase)
 --     capitalCase
 -- 
--- -- |
--- -- Style similar to Haskell conventions.
--- --
--- -- * Types:     @ PFooBar @
--- --
--- -- * Opaques:   @ PFooBarOpaque @
--- --
--- -- * Functions: @ pfooBar @
--- --
--- -- * Constants: @ pfooBar @
--- --
--- -- * Fields:    @ pfooBar @
--- haskellStyle :: CStyle
--- haskellStyle = CStyle
---     Ifndef SystemPath "include"
---     (withPrefix "_" . concatSep "_" . fmap toUpper)
---     capitalCase
---     capitalCase
--- 
---     capitalCase
---     capitalCase
---     capitalCase
---     capitalCase
--- 
---     mixedCase
---     mixedCase
---     mixedCase
--- 
---     mixedCase
---     mixedCase
---     mixedCase
---                 
+-- |
+-- Style similar to Haskell conventions.
+--
+-- * Types:     @ PFooBar @
+--
+-- * Opaques:   @ PFooBarOpaque @
+--
+-- * Functions: @ pfooBar @
+--
+-- * Constants: @ pfooBar @
+--
+-- * Fields:    @ pfooBar @
+haskellStyle :: CStyle
+haskellStyle = CStyle
+    Ifndef SystemPath "include"
+    (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (stdInnerHeader stdStyle) 
+    (stdInnerFooter stdStyle)
+    (withSuffix "_" . capitalCase)
+    (withSuffix "_" . mixedCase)
+
+    capitalCase
+    capitalCase
+    capitalCase
+    capitalCase
+
+    mixedCase
+    mixedCase
+    mixedCase
+
+    mixedCase
+    mixedCase
+    mixedCase
 
 
 -------------------------------------------------------------------------------------
