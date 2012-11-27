@@ -12,9 +12,9 @@
 -- Stability   : experimental
 -- Portability : GHC
 --     
--- This Haskell module defines the Modulo description language. Note that descriptions
--- can be written both using the custom syntax given below, or generated programmatically
--- in Haskell.
+-- This Haskell module defines the Modulo description language. Typically, modules are created
+-- by writing @.module@ files and using the parser defined in "Language.Modulo.Parser". The
+-- abstract syntax tree is given in this moudule.
 -- 
 -- The module language is very simple. Each module consists of a name followed by
 -- eventual import declarations, followed by all other declarations. Here is an example module:

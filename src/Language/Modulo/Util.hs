@@ -21,9 +21,9 @@ module Language.Modulo.Util (
         toCapitalString,
 
         -- ** List stuff
-        concatSep,
         withPrefix,
         withSuffix,
+        concatSep,
         divideList,
         breakList
   ) where

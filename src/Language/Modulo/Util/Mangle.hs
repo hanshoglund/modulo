@@ -25,15 +25,18 @@ import Data.Semigroup
 
 import Language.Modulo.Util
 
--- fooBar
+-- |
+-- Render an indentifier in mixed case, i.e. @foo bar@ becomes @fooBar@.
 mixedCase :: [String] -> String
 mixedCase [] = []
 mixedCase (x:xs) = mconcat $ toLowerString x : fmap toCapitalString xs
 
--- FooBar
+-- |
+-- Render an indentifier in capital case, i.e. @foo bar@ becomes @FooBar@.
 capitalCase :: [String] -> String
 capitalCase = mconcat . fmap toCapitalString
 
--- foo_bar
+-- |
+-- Render an indentifier using the underscore as separator, i.e. @foo bar@ becomes @foo_bar@.
 sepCase :: [String] -> String
 sepCase = concatSep "_"

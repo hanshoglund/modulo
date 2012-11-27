@@ -10,6 +10,8 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
+-- Parser for the module language, as described in "Language.Modulo".
+--
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Parser (
