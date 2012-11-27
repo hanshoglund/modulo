@@ -556,15 +556,13 @@ convertCompType st (Enum as) = ([typ], [])
         
 convertCompType st (Struct as) = ([typ], [])
     where                              
-        typ     = CSUType struct defInfo
-        struct  = cStruct tag (Just decls) [] defInfo
+        typ     = cStruct tag (Just decls)
         tag     = Nothing
         decls   = map (\(n,t) -> declStructMember st n t) $ NonEmpty.toList as
 
 convertCompType st (Union as) = ([typ], [])
     where                              
-        typ     = CSUType union defInfo
-        union   = cUnion tag (Just decls) [] defInfo
+        typ     = cUnion tag (Just decls)
         tag     = Nothing
         decls   = map (\(n,t) -> declStructMember st n t) $ NonEmpty.toList as
 
@@ -608,11 +606,8 @@ paramDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 paramDeclr declr = (Just declr, Nothing, Nothing)
 
 
-cStruct :: Maybe Ident -> Maybe [CDecl] -> [CAttr] -> NodeInfo -> CStructUnion
-cStruct = CStruct CStructTag
-
-cUnion :: Maybe Ident -> Maybe [CDecl] -> [CAttr] -> NodeInfo -> CStructUnion
-cUnion  = CStruct CUnionTag
+cStruct t ds = CSUType r defInfo where r = CStruct CStructTag t ds [] defInfo
+cUnion  t ds = CSUType r defInfo where r = CStruct CUnionTag  t ds [] defInfo
 
 -- | Used for all NodeInfo values in generated code
 defInfo :: NodeInfo
