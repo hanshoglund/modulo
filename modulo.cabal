@@ -24,11 +24,15 @@ library
     hs-source-dirs: src
     exposed-modules:
         Language.Modulo
+
         Language.Modulo.C
         Language.Modulo.Lisp
         Language.Modulo.Haskell
         Language.Modulo.JavaScript
+
         Language.Modulo.Parser
+        Language.Modulo.Loader
+
         Language.Modulo.Util
         Language.Modulo.Util.Mangle
         Language.Modulo.Util.Unmangle
