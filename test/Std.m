@@ -1,7 +1,8 @@
 
 /**
-    @defgroup Std
-    This module imports the standard C namespaces.
+    @defgroup Std Standard library
+    @brief
+        Imports the C standard library.
  */
 module Std
 {
