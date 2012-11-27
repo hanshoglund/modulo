@@ -35,6 +35,9 @@ import Data.Default
 import Data.Semigroup
 
 import Language.Modulo
+import Language.Modulo.Util
+import Language.Modulo.Util.Mangle
+import Language.Modulo.Util.Unmangle
 
 import Language.C.Syntax.AST
 import Language.C.Syntax.Constants
@@ -126,11 +129,11 @@ stdInnerFooter st ns = "/** @} */"
 stdStyle :: CStyle
 stdStyle = CStyle
     Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpperString)
     (stdInnerHeader stdStyle) 
     (stdInnerFooter stdStyle)
-    (withSuffix "_" . concatSep "_" . fmap toLower)
-    (withSuffix "_" . concatSep "_" . fmap toLower)
+    (withSuffix "_" . concatSep "_" . fmap toLowerString)
+    (withSuffix "_" . concatSep "_" . fmap toLowerString)
 
     (withSuffix "_t" . concatSep "_")
     (withSuffix "_t" . concatSep "_")
@@ -159,7 +162,7 @@ stdStyle = CStyle
 cairoStyle :: CStyle
 cairoStyle = CStyle
     Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpperString)
     (stdInnerHeader cairoStyle) 
     (stdInnerFooter cairoStyle)
     (concatSep "_")
@@ -193,7 +196,7 @@ cairoStyle = CStyle
 gtkStyle :: CStyle
 gtkStyle = CStyle
     Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpperString)
     (stdInnerHeader gtkStyle) 
     (stdInnerFooter gtkStyle)
     (concatSep "_")
@@ -226,7 +229,7 @@ gtkStyle = CStyle
 -- appleStyle :: CStyle
 -- appleStyle = CStyle
 --     Ifndef SystemPath "include"
---     (withPrefix "_" . concatSep "_" . fmap toUpper)
+--     (withPrefix "_" . concatSep "_" . fmap toUpperString)
 --     capitalCase
 --     capitalCase
 -- 
@@ -258,7 +261,7 @@ gtkStyle = CStyle
 haskellStyle :: CStyle
 haskellStyle = CStyle
     Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpper)
+    (withPrefix "_" . concatSep "_" . fmap toUpperString)
     (stdInnerHeader stdStyle) 
     (stdInnerFooter stdStyle)
     (withSuffix "_" . capitalCase)
@@ -367,9 +370,13 @@ convertFooter st mod = mempty
 renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
-        typePrefix     = typePrefixMangler st . NonEmpty.toList $ getModuleName n
-        valuePrefix    = valuePrefixMangler st . NonEmpty.toList $ getModuleName n
-        convertType    = withPrefix typePrefix . implStructNameMangler st . unmangle -- TODO disamb struct enum etc
+
+        -- TODO these should receive a module map to lookup the correct module
+        -- Alternatively, we could rewrite the core language to include qualified names
+        typePrefix     = typePrefixMangler st   . NonEmpty.toList $ getModuleName n
+        valuePrefix    = valuePrefixMangler st  . NonEmpty.toList $ getModuleName n
+
+        convertType    = withPrefix typePrefix  . implStructNameMangler st . unmangle -- TODO disamb struct enum etc
         convertFun     = withPrefix valuePrefix . functionNameMangler st . unmangle
         convertConst   = withPrefix valuePrefix . constNameMangler st . unmangle
         convertGlobal  = withPrefix valuePrefix . globalNameMangler st . unmangle
@@ -409,7 +416,9 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         
 
         unmangle :: String -> [String]
-        unmangle x = [toLower x] -- TODO detect case etc
+        unmangle x = [toLowerString x] -- TODO detect case etc
+        
+        
 
 -------------------------------------------------------------------------------------
 -- Top-level declarations
@@ -571,13 +580,6 @@ convertCompType st (BitField as) = notSupported "Bitfields"
 
 
 
-
-
-
-
-
-
-
 -------------------------------------------------------------------------------------
 -- Util
 
@@ -648,36 +650,4 @@ instance Num CInteger where
     signum (CInteger a r f)             = CInteger (signum a) r f
     fromInteger a                       = CInteger a DecRepr noFlags
 
-
-concatSep :: [a] -> [[a]] -> [a]
-concatSep x = List.concat . List.intersperse x
-
-toUpper :: String -> String
-toUpper = fmap Char.toUpper
-
-toLower :: String -> String
-toLower = fmap Char.toLower
-
-toCapital :: String -> String
-toCapital [] = []
-toCapital (x:xs) = Char.toUpper x : toLower xs
-
--- fooBar
-mixedCase :: [String] -> String
-mixedCase [] = []
-mixedCase (x:xs) = mconcat $ toLower x : fmap toCapital xs
-
--- FooBar
-capitalCase :: [String] -> String
-capitalCase = mconcat . fmap toCapital
-
--- foo_bar
-sepCase :: [String] -> String
-sepCase = concatSep "_"
-
-withPrefix :: [a] -> [a] -> [a]
-withPrefix x = (x ++)
-
-withSuffix :: [a] -> [a] -> [a]
-withSuffix x = (++ x)
 
