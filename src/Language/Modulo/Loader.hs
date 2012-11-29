@@ -13,5 +13,11 @@
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.Loader ( 
+module Language.Modulo.Loader (
+        LoaderT(..)
   ) where
+
+import Language.Modulo
+
+data LoaderT a = LoaderT { getLoaderT :: (ModuleName -> Module) -> a }
+
