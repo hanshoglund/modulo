@@ -37,7 +37,7 @@ import Data.Semigroup
 import Language.Modulo
 import Language.Modulo.Util
 import Language.Modulo.Util.Mangle
-import Language.Modulo.Util.Unmangle
+import qualified Language.Modulo.Util.Unmangle as Unmangle
 
 import Language.C.Syntax.AST
 import Language.C.Syntax.Constants
@@ -416,9 +416,8 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (convertUnionField n, renameType st t)) ns
         renameCompType st (BitField ns) = notSupported "Bit-fields"
         
-
         unmangle :: String -> [String]
-        unmangle x = [toLowerString x] -- TODO detect case etc
+        unmangle = fmap toLowerString . Unmangle.unmangle
         
         
 

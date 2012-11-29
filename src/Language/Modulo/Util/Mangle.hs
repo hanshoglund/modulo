@@ -26,17 +26,17 @@ import Data.Semigroup
 import Language.Modulo.Util
 
 -- |
--- Render an indentifier in mixed case, i.e. @foo bar@ becomes @fooBar@.
+-- Mangle an indentifier in mixed case, i.e. @[foo, bar]@ becomes @fooBar@.
 mixedCase :: [String] -> String
 mixedCase [] = []
 mixedCase (x:xs) = mconcat $ toLowerString x : fmap toCapitalString xs
 
 -- |
--- Render an indentifier in capital case, i.e. @foo bar@ becomes @FooBar@.
+-- Mangle an indentifier in capital case, i.e. @[foo, bar]@ becomes @FooBar@.
 capitalCase :: [String] -> String
 capitalCase = mconcat . fmap toCapitalString
 
 -- |
--- Render an indentifier using the underscore as separator, i.e. @foo bar@ becomes @foo_bar@.
+-- Mangle an indentifier using the underscore as separator, i.e. @[foo, bar]@ becomes @foo_bar@.
 sepCase :: [String] -> String
 sepCase = concatSep "_"
