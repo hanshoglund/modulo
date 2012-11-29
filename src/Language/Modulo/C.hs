@@ -214,37 +214,39 @@ gtkStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
--- -- |
--- -- Style used in Apple Frameworks.
--- --
--- -- * Types:     @ PFooBar @
--- --
--- -- * Opaques:   @ PFooBarOpaque @
--- --
--- -- * Functions: @ PFooBar @
--- --
--- -- * Constants: @ kPFooBar @
--- --
--- -- * Fields:    @ mFooBar @
--- appleStyle :: CStyle
--- appleStyle = CStyle
---     Ifndef SystemPath "include"
---     (withPrefix "_" . concatSep "_" . fmap toUpperString)
---     capitalCase
---     capitalCase
--- 
---     capitalCase
---     capitalCase
---     capitalCase
---     capitalCase
--- 
---     (withPrefix "m" . capitalCase)
---     (withPrefix "m" . capitalCase)
---     (withPrefix "m" . capitalCase)
--- 
---     (withPrefix "k" . capitalCase)
---     (withPrefix "g" . capitalCase)
---     capitalCase
+-- |
+-- Style used in Apple Frameworks.
+--
+-- * Types:     @ PFooBar @
+--
+-- * Opaques:   @ PFooBarOpaque @
+--
+-- * Functions: @ PFooBar @
+--
+-- * Constants: @ kPFooBar @
+--
+-- * Fields:    @ mFooBar @
+appleStyle :: CStyle
+appleStyle = CStyle
+    Ifndef SystemPath "include"
+    (withPrefix "_" . concatSep "_" . fmap toUpperString)
+    (stdInnerHeader stdStyle) 
+    (stdInnerFooter stdStyle)
+    (capitalCase)
+    (mixedCase)
+
+    capitalCase
+    capitalCase
+    capitalCase
+    capitalCase
+
+    (withPrefix "m" . capitalCase)
+    (withPrefix "m" . capitalCase)
+    (withPrefix "m" . capitalCase)
+
+    (withPrefix "k" . capitalCase)
+    (withPrefix "g" . capitalCase)
+    capitalCase
 -- 
 -- |
 -- Style similar to Haskell conventions.
@@ -264,8 +266,8 @@ haskellStyle = CStyle
     (withPrefix "_" . concatSep "_" . fmap toUpperString)
     (stdInnerHeader stdStyle) 
     (stdInnerFooter stdStyle)
-    (withSuffix "_" . capitalCase)
-    (withSuffix "_" . mixedCase)
+    (capitalCase)
+    (mixedCase)
 
     capitalCase
     capitalCase
