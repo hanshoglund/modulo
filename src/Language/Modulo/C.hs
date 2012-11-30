@@ -135,10 +135,10 @@ stdStyle = CStyle
     (withSuffix "_" . concatSep "_" . fmap toLowerString)
     (withSuffix "_" . concatSep "_" . fmap toLowerString)
 
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -168,10 +168,10 @@ cairoStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
+    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -202,10 +202,10 @@ gtkStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
-    (withSuffix "_t" . concatSep "_")
+    (concatSep "_" . withSuffix ["t"])
+    (concatSep "_" . withSuffix ["t"])
+    (concatSep "_" . withSuffix ["t"])
+    (concatSep "_" . withSuffix ["t"])
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -378,7 +378,7 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         typePrefix     = typePrefixMangler st   . NonEmpty.toList $ getModuleName n
         valuePrefix    = valuePrefixMangler st  . NonEmpty.toList $ getModuleName n
 
-        convertType    = withPrefix typePrefix  . implStructNameMangler st . unmangle -- TODO disamb struct enum etc
+        convertType    = withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName (NonEmpty.toList $ getModuleName n) . unmangle -- TODO disamb struct enum etc
         convertFun     = withPrefix valuePrefix . functionNameMangler st . unmangle
         convertConst   = withPrefix valuePrefix . constNameMangler st . unmangle
         convertGlobal  = withPrefix valuePrefix . globalNameMangler st . unmangle
@@ -416,8 +416,14 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (convertUnionField n, renameType st t)) ns
         renameCompType st (BitField ns) = notSupported "Bit-fields"
         
+        -- If the type name is a suffix of the module name, we simplify it to avoid redundancy
+        simplifyTypeName :: [String] -> [String] -> [String]
+        simplifyTypeName mod typ
+            | typ `List.isSuffixOf` mod = []
+            | otherwise                 = typ
+        
         unmangle :: String -> [String]
-        unmangle = fmap toLowerString . Unmangle.unmangle
+        unmangle = Unmangle.unmangle
         
         
 
