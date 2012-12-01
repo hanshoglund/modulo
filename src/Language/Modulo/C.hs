@@ -139,13 +139,13 @@ stdStyle = CStyle
     (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_")
-    (concatSep "_")
-    (concatSep "_")
+    (concatSep "_" . fmap toLowerString)
+    (concatSep "_" . fmap toLowerString)
+    (concatSep "_" . fmap toLowerString)
 
-    (concatSep "_")
-    (concatSep "_")
-    (concatSep "_")
+    (concatSep "_" . fmap toLowerString)
+    (concatSep "_" . fmap toLowerString)
+    (concatSep "_" . fmap toLowerString)
 
 -- |
 -- Style used in Cairo.
