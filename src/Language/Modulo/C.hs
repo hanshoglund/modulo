@@ -388,13 +388,14 @@ convertFooter st mod = mempty
 renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
-
+        modName = concatMap unmangle . NonEmpty.toList $ getModuleName n
+        
         -- TODO these should receive a module map to lookup the correct module
         -- Alternatively, we could rewrite the core language to include qualified names
-        typePrefix     = typePrefixMangler st   . NonEmpty.toList $ getModuleName n
-        valuePrefix    = valuePrefixMangler st  . NonEmpty.toList $ getModuleName n
+        typePrefix     = typePrefixMangler st  $ modName
+        valuePrefix    = valuePrefixMangler st $ modName
 
-        convertType    = withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName (NonEmpty.toList $ getModuleName n) . unmangle -- TODO disamb struct enum etc
+        convertType    = withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangle -- TODO disamb struct enum etc
         convertFun     = withPrefix valuePrefix . functionNameMangler st . unmangle
         convertConst   = withPrefix valuePrefix . constNameMangler st . unmangle
         convertGlobal  = withPrefix valuePrefix . globalNameMangler st . unmangle
