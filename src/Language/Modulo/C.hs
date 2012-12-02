@@ -48,8 +48,8 @@ import Language.C.Data.Ident
 import Language.C.Data.Position
 import Language.C.Data.InputStream
 
-import qualified Data.List as List
-import qualified Data.Char as Char
+import qualified Data.List          as List
+import qualified Data.Char          as Char
 import qualified Data.List.NonEmpty as NonEmpty
 
 -------------------------------------------------------------------------------------
@@ -111,8 +111,24 @@ instance Monoid CStyle where
     mempty  = def
     mappend = (<>)
 
-stdInnerHeader st ns = "/** @addtogroup " ++ concat ns ++ "\n    @{\n */"
-stdInnerFooter st ns = "/** @} */"
+
+stdInnerHeader :: CStyle -> [String] -> String
+stdInnerHeader _ ns = concat (post "    @{\n" cs) ++ end
+    where
+        c1 = ["/** "] ++ repeat "    "
+        c2 = repeat "@defgroup "
+        c3 = ns
+        c4 = repeat "\n"
+        cs = List.zipWith4 (\a b c d -> a ++ b ++ c ++ d) c1 c2 c3 c4
+        end = "    */" 
+
+stdInnerFooter :: CStyle -> [String] -> String
+stdInnerFooter _ ns = (concat $ List.zipWith (++) c1 c2) ++ end
+    where
+        c1 = ["/** "] ++ repeat "    "
+        c2 = replicate (length ns) "@}\n"
+        end = "    */" 
+
 
 -- |
 -- Style used in the C standard library.

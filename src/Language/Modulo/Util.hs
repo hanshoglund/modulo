@@ -23,7 +23,14 @@ module Language.Modulo.Util (
         -- ** List stuff
         withPrefix,
         withSuffix,
+        sep,
+        pre,
+        post,
+        wrap,
         concatSep,
+        concatPre,
+        concatPost,
+        concatWrap,
         divideList,
         breakList
   ) where
@@ -37,22 +44,22 @@ import qualified Data.List   as List
 -------------------------------------------------------------------------------------
 
 -- | 
--- Synonym for @Char.toUpper@
+-- Synonym for 'Char.toUpper'
 toUpperChar :: Char -> Char
 toUpperChar = Char.toUpper
 
 -- | 
--- Synonym for @Char.toLower@
+-- Synonym for 'Char.toLower'
 toLowerChar :: Char -> Char
 toLowerChar = Char.toLower
 
 -- | 
--- Synonym for @fmap Char.toUpper@
+-- Synonym for 'fmap Char.toUpper'
 toUpperString :: String -> String
 toUpperString = fmap Char.toUpper
 
 -- | 
--- Synonym for @fmap Char.toLower@
+-- Synonym for 'fmap Char.toLower'
 toLowerString :: String -> String
 toLowerString = fmap Char.toLower
 
@@ -70,19 +77,56 @@ toCapitalString (x:xs) = toUpperChar x : toLowerString xs
 -------------------------------------------------------------------------------------
 
 -- | 
--- Synonym for @(++)@
+-- Synonym for '(++)'
 withPrefix :: [a] -> [a] -> [a]
 withPrefix x = (x ++)
 
 -- | 
--- Synonym for @flip (++)@
+-- Synonym for 'flip (++)'
 withSuffix :: [a] -> [a] -> [a]
 withSuffix x = (++ x)
 
 -- | 
--- Combination of @concat@ and @intersperse@.
+-- Separate a list by the given element.
+--
+-- Equivalent to 'List.intersperse'
+sep :: a -> [a] -> [a]
+sep = List.intersperse
+
+-- | 
+-- Initiate and separate a list by the given element.
+pre :: a -> [a] -> [a]
+pre x = (x :) . sep x
+
+-- | 
+-- Separate and terminate a list by the given element.
+post :: a -> [a] -> [a]
+post x = withSuffix [x] . sep x
+
+-- | 
+-- Separate and terminate a list by the given element.
+wrap :: a -> a -> [a] -> [a]
+wrap x y = (x :) . withSuffix [y] . sep x
+
+-- | 
+-- Combination of 'concat' and 'sep'.
 concatSep :: [a] -> [[a]] -> [a]
-concatSep x = List.concat . List.intersperse x
+concatSep x = concat . sep x
+
+-- | 
+-- Combination of 'concat' and 'pre'.
+concatPre :: [a] -> [[a]] -> [a]
+concatPre x = concat . pre x
+
+-- | 
+-- Combination of 'concat' and 'post'.
+concatPost :: [a] -> [[a]] -> [a]
+concatPost x = concat . post x
+
+-- | 
+-- Combination of 'concat' and 'wrap'.
+concatWrap :: [a] -> [a] -> [[a]] -> [a]
+concatWrap x y = concat . wrap x y
 
 -- | 
 -- Divide a list into parts of maximum length n.
