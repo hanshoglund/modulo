@@ -82,6 +82,7 @@ module Language.Modulo (
         -- ** Modules
         Module(..),
         ModuleName(..),
+        toModuleName,
         
         -- ** Declarations
         Decl(..),
@@ -133,6 +134,9 @@ newtype ModuleName
       getModuleName :: (NonEmpty String) 
       }
     deriving (Eq, Ord)
+
+toModuleName :: [String] -> ModuleName
+toModuleName = ModuleName . NonEmpty.fromList
 
 instance Show ModuleName where
     show (ModuleName (x :| xs)) = concat . List.intersperse "." $ x : xs

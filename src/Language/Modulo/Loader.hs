@@ -46,17 +46,25 @@ getModuleNamePaths n ps = map (++ "/" ++ relativePath n) ps
 
 
 
-
-
+-- TODO detect and fail on recursive dependencies
 loadRec :: ModuleName -> [ModulePath] -> IO [Module]
 loadRec n ps = do
-    s <- readFilePref $ getModuleNamePaths n ps
-    let m = unsafeParse s
+    m <- unsafeLoad n ps
     let deps = modImports m
     depsM <- fmap concat $ mapM (\d -> loadRec d ps) deps
-    return depsM
+    return $ m : depsM
     
     where
+        unsafeLoad :: ModuleName -> [ModulePath] -> IO Module
+        unsafeLoad n ps = do
+            s <- readFilePref $ getModuleNamePaths n ps
+            let m = unsafeParse s
+            if (modName m /= n)
+                then (error $ "File name does not match module name: \n"
+                    ++ "    Saw: `" ++ show (modName m) ++ "'\n"
+                    ++ "    Expected: `" ++ show n ++ "'\n")
+                else (return m)
+        
         unsafeParse :: String -> Module
         unsafeParse s = case (parse s) of
             Left e -> error $ "Parse error: " ++ show e
