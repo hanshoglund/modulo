@@ -12,19 +12,20 @@ import System.Exit
 import System.Environment
 import System.Console.GetOpt
 
-import Text.Pretty
-
 import Language.Modulo
 import Language.Modulo.C
 import Language.Modulo.Lisp
 import Language.Modulo.Parser
 import Language.Modulo.Loader
+import Language.Modulo.Util
 
 data ModLang
     = C
     | Lisp
+    | JavaScript
     | Haskell
     deriving (Eq, Read, Show)
+modLangs = [C, Lisp, JavaScript, Haskell]
 
 data ModCStyle
     = CStyleStd
@@ -44,19 +45,27 @@ data ModOpt
 readModLang :: Maybe String -> ModOpt
 readModLang Nothing = Lang C
 readModLang (Just s) = Lang $ case s of
-    "l"         -> Lisp
-    "lisp"      -> Lisp
-    "Lisp"      -> Lisp
-    "hs"        -> Haskell
-    "haskell"   -> Haskell
-    "Haskell"   -> Haskell
-    _           -> C
+    "l"          -> Lisp
+    "lisp"       -> Lisp
+    "Lisp"       -> Lisp
+    "js"         -> JavaScript
+    "JS"         -> JavaScript
+    "Js"         -> JavaScript
+    "JavaScript" -> JavaScript
+    "hs"         -> Haskell
+    "haskell"    -> Haskell
+    "Haskell"    -> Haskell
+    _            -> C
 readModPath :: Maybe String -> ModOpt
 readModPath s = Path $ maybeToList s
 -- TODO accept more than one, separate by commas
 
 version = "modulo-0.5"
-header  = "Usage: modulo [options] files...\n" ++
+header  = "Usage: modulo [options]\n" ++
+          "Usage: modulo [options] files...\n" ++
+          "\n" ++
+          "Languages:\n  " ++ concatSep "\n  " (map show modLangs) ++ "\n" ++
+          "\n" ++
           "Options:"
 
 options = [ 

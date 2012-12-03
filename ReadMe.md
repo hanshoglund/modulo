@@ -18,15 +18,21 @@ Haskell Platform
 
 ## Usage
 
+    Usage: modulo [options]
     Usage: modulo [options] files...
-    Options:
-      -h        --help             Print help and exit
-      -v        --version          Print version and exit
-      -T[LANG]  --language[=LANG]  Output language
+
     Languages:
       C
       Lisp
+      JavaScript
       Haskell
+
+    Options:
+      -h        --help                Print help and exit
+      -v        --version             Print version and exit
+      -L[LANG]  --language[=LANG]     Output language
+      -M[PATH]  --module-path[=PATH]  Module paths
+
     
 ### Module language 
 
