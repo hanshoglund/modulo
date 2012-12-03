@@ -106,10 +106,10 @@ declType :: LispStyle -> Name -> Type -> Lisp
 declType st n t = List [symbol "defctype", symbol n, convertType st t]
 
 declFun :: LispStyle -> Name -> FunType -> Lisp             
-declFun st n (Function as r) = List [symbol "defcfun", symbol n, ret]
+declFun st n (Function as r) = List [symbol "defcfun", string n, ret, args]
     where
-        ret = convertType st r
-        args = []
+        ret  = convertType st r
+        args = List $ map (convertType st) as
 
 
 
@@ -155,12 +155,14 @@ convertPrimType st UInt8      = keyword "uint8"
 convertPrimType st UInt16     = keyword "uint16" 
 convertPrimType st UInt32     = keyword "uint32" 
 convertPrimType st UInt64     = keyword "uint64"
--- CFFI does not support these 
-convertPrimType st Size       = error "Can not use size types with CFFI"
-convertPrimType st Ptrdiff    = error "Can not use size types with CFFI"
-convertPrimType st Intptr     = error "Can not use size types with CFFI" 
-convertPrimType st UIntptr    = error "Can not use size types with CFFI"
-convertPrimType st SChar      = error "Can not use signed char types with CFFI" 
+
+-- FIXME CFFI does not support these 
+-- convertPrimType st Size       = error "Can not use size types with CFFI"
+-- convertPrimType st Ptrdiff    = error "Can not use size types with CFFI"
+-- convertPrimType st Intptr     = error "Can not use size types with CFFI" 
+-- convertPrimType st UIntptr    = error "Can not use size types with CFFI"
+-- convertPrimType st SChar      = error "Can not use signed char types with CFFI" 
+convertPrimType st _           = keyword "long"
 
 convertRefType :: LispStyle -> RefType -> Lisp
 convertRefType st (Pointer t) = List [keyword "pointer", convertType st t]
@@ -175,6 +177,15 @@ convertCompType st (Struct as)     = convertType st voidPtr
 convertCompType st (Union as)      = convertType st voidPtr
 convertCompType st (BitField as)   = error "Not implemented: bitfields" -- TODO
 
+
+
+
+
+
+
+
+string :: String -> Lisp
+string = String . pack
 
 symbol :: String -> Lisp
 symbol = Symbol . pack

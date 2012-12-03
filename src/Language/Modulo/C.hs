@@ -350,10 +350,10 @@ convertHeader st mod = mempty
     ++ innerHeader st name
     ++ "\n\n"
     where
-        name = NonEmpty.toList . getModuleName . modName $ mod
+        name = getModuleNameList . modName $ mod
         guard = guardMangler st name
         imports = concatSep "\n"
-            . map (withPrefix ("#" ++ importDirective st ++ " <") . withSuffix ".h>" . concatSep "/" . NonEmpty.toList . getModuleName)
+            . map (withPrefix ("#" ++ importDirective st ++ " <") . withSuffix ".h>" . concatSep "/" . getModuleNameList)
             . modImports
             $ mod
 
@@ -378,7 +378,7 @@ convertFooter st mod = mempty
     ++ guardEnd (guardStyle st) guard
     ++ "\n\n"
     where
-        name = NonEmpty.toList . getModuleName . modName $ mod
+        name = getModuleNameList . modName $ mod
         guard = guardMangler st name
 
 
@@ -675,3 +675,4 @@ instance Num CInteger where
     fromInteger a                       = CInteger a DecRepr noFlags
 
 
+getModuleNameList = NonEmpty.toList . getModuleName

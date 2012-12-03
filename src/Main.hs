@@ -6,7 +6,7 @@ module Main where
 
 import Control.Monad (when)
 import Data.List (find)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, maybeToList)
 import System.IO
 import System.Exit
 import System.Environment
@@ -18,21 +18,13 @@ import Language.Modulo
 import Language.Modulo.C
 import Language.Modulo.Lisp
 import Language.Modulo.Parser
+import Language.Modulo.Loader
 
 data ModLang
     = C
     | Lisp
     | Haskell
     deriving (Eq, Read, Show)
-readModLang Nothing = Lang C
-readModLang (Just s) = Lang $ case s of
-    "l"         -> Lisp
-    "lisp"      -> Lisp
-    "Lisp"      -> Lisp
-    "hs"        -> Haskell
-    "haskell"   -> Haskell
-    "Haskell"   -> Haskell
-    _           -> C
 
 data ModCStyle
     = CStyleStd
@@ -46,16 +38,32 @@ data ModOpt
     = Help    
     | Version
     | Lang { getLang :: ModLang }
+    | Path { getPath :: [ModulePath] }
     deriving (Eq, Show)
+
+readModLang :: Maybe String -> ModOpt
+readModLang Nothing = Lang C
+readModLang (Just s) = Lang $ case s of
+    "l"         -> Lisp
+    "lisp"      -> Lisp
+    "Lisp"      -> Lisp
+    "hs"        -> Haskell
+    "haskell"   -> Haskell
+    "Haskell"   -> Haskell
+    _           -> C
+readModPath :: Maybe String -> ModOpt
+readModPath s = Path $ maybeToList s
+-- TODO accept more than one, separate by commas
 
 version = "modulo-0.5"
 header  = "Usage: modulo [options] files...\n" ++
           "Options:"
 
 options = [ 
-    (Option ['h'] ["help"]       (NoArg Help)         "Print help and exit"),
-    (Option ['v'] ["version"]    (NoArg Version)      "Print version and exit"),
-    (Option ['T'] ["language"])  (OptArg readModLang "LANG") "Output language"
+    (Option ['h'] ["help"]          (NoArg Help)         "Print help and exit"),
+    (Option ['v'] ["version"]       (NoArg Version)      "Print version and exit"),
+    (Option ['L'] ["language"]      (OptArg readModLang  "LANG") "Output language"),
+    (Option ['M'] ["module-path"]   (OptArg readModPath  "PATH") "Module paths")
   ]                                          
     
 main = do
@@ -79,37 +87,26 @@ findLang opts = fmap getLang $ find isLang opts
     where                                   
         isLang (Lang _) = True
         isLang _        = False
+findPath opts = fmap getPath $ find isPath opts
+    where                                   
+        isPath (Path _) = True
+        isPath _        = False
         
 
 compileFile :: [ModOpt] -> Handle -> Handle -> IO ()
 compileFile opts input output = do
-    let lang = fromMaybe C (findLang opts)
+    let lang  = fromMaybe C (findLang opts)
+    let paths = fromMaybe [] (findPath opts)
     
     s <- hGetContents input
-    let m = parseSafe s
+    let m = unsafeParse s
     let c = printMod lang m
     hPutStr output c
-
-    -- let coreToCore = singleAbs . singleApp
-    -- let hs = parse s
-    -- let b  = fromHaskell hs
-    -- let b' = transform coreToCore b
-    -- let ms = toManuScript b'
-    -- 
-    -- when (IncludeCore `elem` opts || JustCore `elem` opts) $ do
-    --     hPutStr output $ show (pretty b')
-    --     hPutStr output "\n"
-    --     hPutStr output "\n"
-    -- 
-    -- when (not $ JustCore `elem` opts) $ do
-    --     hPutStr output $ show (pretty ms)
-    --     hPutStr output "\n"
-    --     hPutStr output "\n"
     
     return ()
     where               
-        parseSafe :: String -> Module
-        parseSafe s = case (parse s) of
+        unsafeParse :: String -> Module
+        unsafeParse s = case (parse s) of
             Left e -> error $ "Parse error: " ++ show e
             Right m -> m
         
