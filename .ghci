@@ -1,7 +1,7 @@
 :m + Language.Modulo
 :m + Language.Modulo.C
-:m + Language.Modulo.Parser
-:m + Language.Modulo.Loader
+:m + Language.Modulo.Load
+:m + Language.Modulo.Parse
 :m + Language.Modulo.Util.Mangle
 :m + Language.Modulo.Util.Unmangle
 :set prompt "Modulo> "
