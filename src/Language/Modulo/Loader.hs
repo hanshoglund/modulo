@@ -14,13 +14,18 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Loader (
+        -- ** Paths
         ModulePath,
-        stdModulePaths,
-        withStdModulePaths,
         relativePath,
         absolutePaths,
-        loadModuleDeps,
-        loadRec
+
+        -- *** Standard paths
+        stdModulePaths,
+        withStdModulePaths,
+
+        -- ** Loading
+        loadModule,
+        loadDependencies,
   ) where
 
 import Control.Exception
@@ -32,6 +37,9 @@ import qualified Data.List.NonEmpty as NonEmpty
 
 -- We should mimic CPP behaviour or it is a bug
 
+-- |
+-- Path where modules are stored.
+--
 type ModulePath = FilePath
 
 -- |
@@ -41,34 +49,49 @@ stdModulePaths = ["/usr/modules", "/usr/local/modules"]
 
 -- |
 -- Append the standard paths to the given paths.
+--
+-- That is, the given paths take precedence over the standards.
+--
 withStdModulePaths :: [ModulePath] -> [ModulePath]
 withStdModulePaths = (++ stdModulePaths)
 
 -- |
 -- Converts a module name to a relative path.
-relativePath :: ModuleName -> ModulePath
+--
+relativePath :: ModuleName -> FilePath
 relativePath n = concatSep "/" (getModuleNameList n) ++ ".module"
 
 -- |
--- Converts a module name to an absolute path.
-absolutePaths :: [ModulePath] -> ModuleName -> [ModulePath]
+-- Converts a module name to a list of absolute paths, in order of preference.
+--
+absolutePaths :: [ModulePath] -> ModuleName -> [FilePath]
 absolutePaths ps n = map (++ "/" ++ relativePath n) ps
 
 
-loadModuleDeps :: [ModulePath] -> Module -> IO [Module]
-loadModuleDeps ps m = do
+-- |
+-- Load the dependencies of the given module.
+--
+-- This function will traverse the loaded module recursively and block if a recursive dependency
+-- is encountered.
+-- 
+loadDependencies :: [ModulePath] -> Module -> IO [Module]
+loadDependencies ps m = do
     let deps = modImports m
-    depsM <- concatMapM (loadRec ps) deps
+    depsM <- concatMapM (loadModule ps) deps
     return $ m : depsM
 
 
 
 -- TODO detect and fail on recursive dependencies
-loadRec :: [ModulePath] -> ModuleName -> IO [Module]
-loadRec ps n = do
+
+-- |
+-- Load a module of the given name.
+-- 
+loadModule :: [ModulePath] -> ModuleName -> IO [Module]
+loadModule ps n = do
     m <- unsafeLoad ps n
     let deps = modImports m
-    depsM <- concatMapM (loadRec ps) deps
+    depsM <- concatMapM (loadModule ps) deps
     return $ m : depsM
     
     where
