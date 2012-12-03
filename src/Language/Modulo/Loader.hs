@@ -45,13 +45,20 @@ getModuleNamePaths :: ModuleName -> [ModulePath] -> [FilePath]
 getModuleNamePaths n ps = map (++ "/" ++ relativePath n) ps
 
 
+loadModuleDeps :: [ModulePath] -> Module -> IO [Module]
+loadModuleDeps ps m = do
+    let deps = modImports m
+    depsM <- concatMapM (loadRec ps) deps
+    return $ m : depsM
+
+
 
 -- TODO detect and fail on recursive dependencies
-loadRec :: ModuleName -> [ModulePath] -> IO [Module]
-loadRec n ps = do
+loadRec :: [ModulePath] -> ModuleName -> IO [Module]
+loadRec ps n = do
     m <- unsafeLoad n ps
     let deps = modImports m
-    depsM <- fmap concat $ mapM (\d -> loadRec d ps) deps
+    depsM <- concatMapM (loadRec ps) deps
     return $ m : depsM
     
     where
@@ -87,4 +94,8 @@ readFilePref (f:fs) = do
         Left e  -> if (null fs) then (error $ show e) else readFilePref fs
         Right s -> return s
 
+getModuleNameList :: ModuleName -> [String]
 getModuleNameList = NonEmpty.toList . getModuleName
+
+concatMapM :: (Monad f, Functor f) => (a -> f [b]) -> [a] -> f [b]
+concatMapM f = fmap concat . mapM f
