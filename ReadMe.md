@@ -9,7 +9,8 @@ This package include generators for C, JavaScript, Haskell and Common Lisp.
 
 ## Requirements
 
-Haskell Platform
+* [Haskell Platform](http://www.haskell.org/platform)
+* [Prettify](https://github.com/hanshoglund/prettify)
 
 ## Installation
 
