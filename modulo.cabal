@@ -30,9 +30,8 @@ library
         Language.Modulo.Haskell
         Language.Modulo.JavaScript
 
-        Language.Modulo.Parser
-        Language.Modulo.Loader
-
+        Language.Modulo.Load
+        Language.Modulo.Parse
         Language.Modulo.Util
         Language.Modulo.Util.Mangle
         Language.Modulo.Util.Unmangle

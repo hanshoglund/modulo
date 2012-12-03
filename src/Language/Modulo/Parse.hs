@@ -14,7 +14,7 @@
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.Parser (
+module Language.Modulo.Parse (
         parse,
         unsafeParseFile
   ) where

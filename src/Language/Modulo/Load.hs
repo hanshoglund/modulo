@@ -13,7 +13,7 @@
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.Loader (
+module Language.Modulo.Load (
         -- ** Paths
         ModulePath,
         relativePath,
@@ -31,8 +31,9 @@ module Language.Modulo.Loader (
 import Control.Exception
 
 import Language.Modulo
-import Language.Modulo.Parser
+import Language.Modulo.Parse
 import Language.Modulo.Util
+
 import qualified Data.List.NonEmpty as NonEmpty
 
 -- We should mimic CPP behaviour or it is a bug
