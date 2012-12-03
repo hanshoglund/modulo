@@ -78,11 +78,6 @@ main = do
     runFilter opts
 
 
--- |
--- Run as a filter from stdin to stdout.
-runFilter :: [ModOpt] -> IO ()
-runFilter opts = compileFile opts stdin stdout
-
 findLang opts = fmap getLang $ find isLang opts
     where                                   
         isLang (Lang _) = True
@@ -92,6 +87,11 @@ findPath opts = fmap getPath $ find isPath opts
         isPath (Path _) = True
         isPath _        = False
         
+-- |
+-- Run as a filter from stdin to stdout.
+runFilter :: [ModOpt] -> IO ()
+runFilter opts = compileFile opts stdin stdout
+
 
 compileFile :: [ModOpt] -> Handle -> Handle -> IO ()
 compileFile opts input output = do
