@@ -13,8 +13,8 @@
 -- Portability : GHC
 --     
 -- This Haskell module defines the Modulo description language. Typically, modules are created
--- by writing @.module@ files and using the parser defined in "Language.Modulo.Parser". The
--- abstract syntax tree is given in this moudule.
+-- by writing @.module@ files and using the parser defined in "Language.Modulo.Parser", or
+-- the @modulo@ command-line tool. The abstract syntax tree is given below.
 -- 
 -- The module language is very simple. Each module consists of a name followed by
 -- eventual import declarations, followed by all other declarations. Here is an example module:

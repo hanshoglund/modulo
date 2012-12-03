@@ -13,9 +13,15 @@
 --
 -------------------------------------------------------------------------------------
 
-module Language.Modulo.Loader -- (
-  --)
-where
+module Language.Modulo.Loader (
+        ModulePath,
+        stdModulePaths,
+        withStdModulePaths,
+        relativePath,
+        absolutePaths,
+        loadModuleDeps,
+        loadRec
+  ) where
 
 import Control.Exception
 
@@ -36,13 +42,17 @@ stdModulePaths = ["/usr/modules", "/usr/local/modules"]
 -- |
 -- Append the standard paths to the given paths.
 withStdModulePaths :: [ModulePath] -> [ModulePath]
-withStdModulePaths ps = ps ++ stdModulePaths
+withStdModulePaths = (++ stdModulePaths)
 
+-- |
+-- Converts a module name to a relative path.
 relativePath :: ModuleName -> ModulePath
 relativePath n = concatSep "/" (getModuleNameList n) ++ ".module"
 
-getModuleNamePaths :: ModuleName -> [ModulePath] -> [FilePath]
-getModuleNamePaths n ps = map (++ "/" ++ relativePath n) ps
+-- |
+-- Converts a module name to an absolute path.
+absolutePaths :: [ModulePath] -> ModuleName -> [ModulePath]
+absolutePaths ps n = map (++ "/" ++ relativePath n) ps
 
 
 loadModuleDeps :: [ModulePath] -> Module -> IO [Module]
@@ -56,15 +66,15 @@ loadModuleDeps ps m = do
 -- TODO detect and fail on recursive dependencies
 loadRec :: [ModulePath] -> ModuleName -> IO [Module]
 loadRec ps n = do
-    m <- unsafeLoad n ps
+    m <- unsafeLoad ps n
     let deps = modImports m
     depsM <- concatMapM (loadRec ps) deps
     return $ m : depsM
     
     where
-        unsafeLoad :: ModuleName -> [ModulePath] -> IO Module
-        unsafeLoad n ps = do
-            s <- readFilePref $ getModuleNamePaths n ps
+        unsafeLoad :: [ModulePath] -> ModuleName -> IO Module
+        unsafeLoad ps n = do
+            s <- readFilePref $ absolutePaths ps n
             let m = unsafeParse s
             if (modName m /= n)
                 then (error $ "File name does not match module name: \n"
