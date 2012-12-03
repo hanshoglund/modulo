@@ -5,7 +5,7 @@ Modulo is a tool that generates modular, standard C interfaces based on a high-l
 description language. The idea is to specify functionality in the module language 
 and implement it in any language that supports C-style calling conventions. 
 
-This package include generators for C, Haskell and Common Lisp.
+This package include generators for C, JavaScript, Haskell and Common Lisp.
 
 ## Requirements
 
