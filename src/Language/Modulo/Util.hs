@@ -32,7 +32,10 @@ module Language.Modulo.Util (
         concatPost,
         concatWrap,
         divideList,
-        breakList
+        breakList,
+        
+        -- ** Monad stuff
+        concatMapM
   ) where
 
 import qualified Data.Char   as Char
@@ -78,11 +81,13 @@ toCapitalString (x:xs) = toUpperChar x : toLowerString xs
 
 -- | 
 -- Synonym for '(++)'
+--
 withPrefix :: [a] -> [a] -> [a]
 withPrefix x = (x ++)
 
 -- | 
 -- Synonym for 'flip (++)'
+--
 withSuffix :: [a] -> [a] -> [a]
 withSuffix x = (++ x)
 
@@ -90,46 +95,55 @@ withSuffix x = (++ x)
 -- Separate a list by the given element.
 --
 -- Equivalent to 'List.intersperse'
+--
 sep :: a -> [a] -> [a]
 sep = List.intersperse
 
 -- | 
 -- Initiate and separate a list by the given element.
+--
 pre :: a -> [a] -> [a]
 pre x = (x :) . sep x
 
 -- | 
 -- Separate and terminate a list by the given element.
+--
 post :: a -> [a] -> [a]
 post x = withSuffix [x] . sep x
 
 -- | 
 -- Separate and terminate a list by the given element.
+--
 wrap :: a -> a -> [a] -> [a]
 wrap x y = (x :) . withSuffix [y] . sep x
 
 -- | 
 -- Combination of 'concat' and 'sep'.
+--
 concatSep :: [a] -> [[a]] -> [a]
 concatSep x = concat . sep x
 
 -- | 
 -- Combination of 'concat' and 'pre'.
+--
 concatPre :: [a] -> [[a]] -> [a]
 concatPre x = concat . pre x
 
 -- | 
 -- Combination of 'concat' and 'post'.
+--
 concatPost :: [a] -> [[a]] -> [a]
 concatPost x = concat . post x
 
 -- | 
 -- Combination of 'concat' and 'wrap'.
+--
 concatWrap :: [a] -> [a] -> [[a]] -> [a]
 concatWrap x y = concat . wrap x y
 
 -- | 
 -- Divide a list into parts of maximum length n.
+--
 divideList :: Int -> [a] -> [[a]]
 divideList n xs 
     | length xs <= n = [xs]
@@ -138,6 +152,13 @@ divideList n xs
 -- | 
 -- Break up a list into parts of maximum length n, inserting the given list as separator.
 -- Useful for breaking up strings, as in @breakList 80 "\n" str@.
+--
 breakList :: Int -> [a] -> [a] -> [a]
 breakList n z = Monoid.mconcat . List.intersperse z . divideList n    
 
+-- | 
+-- Break up a list into parts of maximum length n, inserting the given list as separator.
+-- Useful for breaking up strings, as in @breakList 80 "\n" str@.
+--
+concatMapM :: (Monad f, Functor f) => (a -> f [b]) -> [a] -> f [b]
+concatMapM f = fmap concat . mapM f

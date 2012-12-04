@@ -674,5 +674,3 @@ instance Num CInteger where
     signum (CInteger a r f)             = CInteger (signum a) r f
     fromInteger a                       = CInteger a DecRepr noFlags
 
-
-getModuleNameList = NonEmpty.toList . getModuleName

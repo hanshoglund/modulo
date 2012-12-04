@@ -84,6 +84,7 @@ loadDependencies ps m = do
 
 
 -- TODO detect and fail on recursive dependencies
+-- TODO generally more safe version of loadModule
 
 -- |
 -- Load a module of the given name.
@@ -98,7 +99,7 @@ loadModule ps n = do
     where
         unsafeLoad :: [ModulePath] -> ModuleName -> IO Module
         unsafeLoad ps n = do
-            s <- readFilePref $ absolutePaths ps n
+            s <- unsafeReadAny $ absolutePaths ps n
             let m = unsafeParse s
             if (modName m /= n)
                 then (error $ "File name does not match module name: \n"
@@ -113,23 +114,14 @@ loadModule ps n = do
 
 
 
-
-
-
-
 -- | 
 -- Attempt to read all given files, returning the contents of the first successful 
 -- read, or failing if none could be found.
-readFilePref :: [FilePath] -> IO String
-readFilePref []     = error "readFilePref: Empty path list"
-readFilePref (f:fs) = do
+unsafeReadAny :: [FilePath] -> IO String
+unsafeReadAny []     = error "unsafeReadAny: Empty path list"
+unsafeReadAny (f:fs) = do
     r <- try $ readFile f :: IO (Either IOException String)
     case r of
-        Left e  -> if (null fs) then (error $ show e) else readFilePref fs
+        Left e  -> if (null fs) then (error $ show e) else unsafeReadAny fs
         Right s -> return s
 
-getModuleNameList :: ModuleName -> [String]
-getModuleNameList = NonEmpty.toList . getModuleName
-
-concatMapM :: (Monad f, Functor f) => (a -> f [b]) -> [a] -> f [b]
-concatMapM f = fmap concat . mapM f
