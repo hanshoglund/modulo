@@ -16,6 +16,7 @@
 
 module Language.Modulo.Parse (
         parse,
+        parseName,
         unsafeParseFile
   ) where
 
@@ -33,11 +34,17 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty
 
 -- |
--- Parse a module description from a string, returning an error if unsuccessful and
--- the resulting module otherwise.
+-- Parse a module description, returning an error if unsuccessful.
 --
 parse :: String -> Either ParseError Module
-parse str = runParser modParser () "" str
+parse = runParser modParser () ""
+
+
+-- |
+-- Parse a qualified name, returning an error if unsuccessful.
+--
+parseName :: String -> Either ParseError Name
+parseName = runParser nameParser () ""
 
 -- |
 -- Parse a module description from the given file, or fail if unsuccessful.
