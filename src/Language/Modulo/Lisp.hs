@@ -103,10 +103,10 @@ convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
 
 declType :: LispStyle -> Name -> Type -> Lisp             
-declType st n t = List [symbol "defctype", symbol n, convertType st t]
+declType st n t = List [symbol "defctype", symbolName n, convertType st t]
 
 declFun :: LispStyle -> Name -> FunType -> Lisp             
-declFun st n (Function as r) = List [symbol "defcfun", string n, ret, args]
+declFun st n (Function as r) = List [symbol "defcfun", stringName n, ret, args]
     where
         ret  = convertType st r
         args = List $ map (convertType st) as
@@ -129,7 +129,7 @@ convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: LispStyle -> Name -> Lisp
-convertAlias st n = keyword n
+convertAlias st n = keywordName n
 
 convertPrimType :: LispStyle -> PrimType -> Lisp
 convertPrimType st Void       = keyword "void"
@@ -192,6 +192,16 @@ symbol = Symbol . pack
 
 keyword :: String -> Lisp
 keyword x = Symbol (pack $ ":" ++ x)
+
+stringName :: Name -> Lisp
+stringName = string . getName
+
+symbolName :: Name -> Lisp
+symbolName = symbol . getName
+
+keywordName :: Name -> Lisp
+keywordName = keyword . getName
+
 
 voidPtr = RefType (Pointer $ PrimType Void)
 

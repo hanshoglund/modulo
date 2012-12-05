@@ -87,7 +87,7 @@ module Language.Modulo (
         
         -- ** Declarations
         Decl(..),
-        Name,
+        Name(..),
         Value(..),
 
         -- ** Types
@@ -153,7 +153,12 @@ instance Show ModuleName where
 --
 -- Note that any Unicode string may be used as a name.
 --
-type Name = String
+data Name = Name { getName :: String }
+    deriving (Eq, Ord)
+
+instance Show Name where
+    show (Name n) = n    
+
 
 -- | 
 -- An declaration maps a name to type and optionally a value.

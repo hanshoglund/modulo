@@ -101,7 +101,7 @@ parseTypeDec = do
     optional lspace
     typ <- parseType
     semi lexer
-    return $ TypeDecl name typ
+    return $ TypeDecl (Name name) typ
 
 parseTagDec :: Parser Decl
 parseTagDec = do
@@ -123,7 +123,7 @@ parseNameType = do
     char ':'
     optional lspace
     typ <- parseType
-    return $ (name, typ)
+    return $ (Name name, typ)
 
 
 parseConstDec :: Parser Decl
@@ -191,7 +191,7 @@ parseEnumType = do
     optional lspace
     char '}'
     optional lspace
-    return $ CompType $ Enum (n :| ns)
+    return $ CompType $ Enum (fmap Name $ n :| ns)
 
 parseUnionType :: Parser Type
 parseUnionType = do
@@ -257,7 +257,7 @@ parsePrimType = mzero
 parseAliasType :: Parser Type
 parseAliasType = do
     name <- lname
-    return $ AliasType name
+    return $ AliasType (Name name)
 
 
 -- Extra combinators, not exported

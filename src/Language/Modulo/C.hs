@@ -395,14 +395,14 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         typePrefix     = typePrefixMangler st  $ modName
         valuePrefix    = valuePrefixMangler st $ modName
 
-        convertType    = withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangle -- TODO disamb struct enum etc
-        convertFun     = withPrefix valuePrefix . functionNameMangler st . unmangle
-        convertConst   = withPrefix valuePrefix . constNameMangler st . unmangle
-        convertGlobal  = withPrefix valuePrefix . globalNameMangler st . unmangle
+        convertType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName -- TODO disamb struct enum etc
+        convertFun     = Name . withPrefix valuePrefix . functionNameMangler st . unmangleName
+        convertConst   = Name . withPrefix valuePrefix . constNameMangler st . unmangleName
+        convertGlobal  = Name . withPrefix valuePrefix . globalNameMangler st . unmangleName
         
-        convertStructField = structFieldMangler st . unmangle
-        convertUnionField  = unionFieldMangler st . unmangle
-        convertEnumField   = enumFieldMangler st . unmangle
+        convertStructField = Name . structFieldMangler st . unmangleName
+        convertUnionField  = Name . unionFieldMangler st . unmangleName
+        convertEnumField   = Name . enumFieldMangler st . unmangleName
 
         
         renameDecl st (TypeDecl n t)      = TypeDecl (convertType n) (renameType st t)
@@ -441,6 +441,9 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         
         unmangle :: String -> [String]
         unmangle = Unmangle.unmangle
+
+        unmangleName :: Name -> [String]
+        unmangleName = unmangle . getName
         
         
 
@@ -465,7 +468,7 @@ declType st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
         spec    = [CStorageSpec (CTypedef defInfo)] ++ map CTypeSpec typ
-        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
 declVar :: CStyle -> Name -> Type -> CDecl             
@@ -473,7 +476,7 @@ declVar st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
         spec    = [] ++ map CTypeSpec typ
-        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
 declFun :: CStyle -> Name -> FunType -> CDecl             
@@ -481,7 +484,7 @@ declFun st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertFunType st t
         spec    = [] ++ map CTypeSpec typ
-        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
 
@@ -493,7 +496,7 @@ declParam st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
         spec    = map CTypeSpec typ
-        declr   = CDeclr (fmap ident n) decl Nothing [] defInfo
+        declr   = CDeclr (fmap identName n) decl Nothing [] defInfo
         decList = [memberDeclr declr]
 
 -- struct or union member
@@ -502,7 +505,7 @@ declStructMember st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
         spec    = map CTypeSpec typ
-        declr   = CDeclr (Just $ ident n) decl Nothing [] defInfo
+        declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [memberDeclr declr]
 
 declBitfieldMember :: CStyle -> Maybe Name -> Type -> Int -> CDecl
@@ -525,7 +528,7 @@ convertType st (CompType t)  = convertCompType st t
 convertAlias :: CStyle -> Name -> ([CTypeSpec], [CDerivedDeclr])
 convertAlias st n = (alias, [])
     where
-        alias = [CTypeDef (ident n) defInfo]
+        alias = [CTypeDef (identName n) defInfo]
 
 convertPrimType :: CStyle -> PrimType -> ([CTypeSpec], [CDerivedDeclr])
 convertPrimType st t = (prim t, [])
@@ -585,7 +588,7 @@ convertCompType st (Enum as) = ([typ], [])
         typ     = CEnumType enum defInfo
         enum    = CEnum tag (Just names) [] defInfo
         tag     = Nothing
-        names   = map (\n -> (ident n, Nothing)) $ NonEmpty.toList as
+        names   = map (\n -> (identName n, Nothing)) $ NonEmpty.toList as
         
 convertCompType st (Struct as) = ([typ], [])
     where                              
@@ -610,6 +613,9 @@ convertCompType st (BitField as) = notSupported "Bitfields"
 -- | An identifier
 ident :: String -> Ident
 ident name = Ident name 0 defInfo
+
+identName :: Name -> Ident
+identName = ident . getName
 
 -- | Top-level declaration.
 topLevelDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
