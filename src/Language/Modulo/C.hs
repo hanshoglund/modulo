@@ -401,21 +401,28 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         typePrefix     = typePrefixMangler st  $ modName
         valuePrefix    = valuePrefixMangler st $ modName
 
-        convertType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName -- TODO disamb struct enum etc
-        convertFun     = Name . withPrefix valuePrefix . functionNameMangler st . unmangleName
-        convertConst   = Name . withPrefix valuePrefix . constNameMangler st . unmangleName
-        convertGlobal  = Name . withPrefix valuePrefix . globalNameMangler st . unmangleName
+        translType    :: Name -> Name
+        translType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName -- TODO disamb struct enum etc
+        translFun     :: Name -> Name
+        translFun     = Name . withPrefix valuePrefix . functionNameMangler st . unmangleName
+        translConst   :: Name -> Name
+        translConst   = Name . withPrefix valuePrefix . constNameMangler st . unmangleName
+        translGlobal  :: Name -> Name
+        translGlobal  = Name . withPrefix valuePrefix . globalNameMangler st . unmangleName
         
-        convertStructField = Name . structFieldMangler st . unmangleName
-        convertUnionField  = Name . unionFieldMangler st . unmangleName
-        convertEnumField   = Name . enumFieldMangler st . unmangleName
+        translStructField  :: Name -> Name
+        translStructField = Name . structFieldMangler st . unmangleName
+        translUnionField  :: Name -> Name
+        translUnionField  = Name . unionFieldMangler st . unmangleName
+        translEnumField  :: Name -> Name
+        translEnumField   = Name . enumFieldMangler st . unmangleName
 
         
-        renameDecl st (TypeDecl n t)      = TypeDecl (convertType n) (renameType st t)
-        renameDecl st (FunctionDecl n t)  = FunctionDecl (convertFun n) (renameFunType st t)
+        renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (renameType st t)
+        renameDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (renameFunType st t)
         renameDecl st (TagDecl t)         = TagDecl (renameType st t)
-        renameDecl st (ConstDecl n v t)   = ConstDecl (convertConst n) v (renameType st t)
-        renameDecl st (GlobalDecl n v t)  = GlobalDecl (convertGlobal n) v (renameType st t)
+        renameDecl st (ConstDecl n v t)   = ConstDecl (translConst n) v (renameType st t)
+        renameDecl st (GlobalDecl n v t)  = GlobalDecl (translGlobal n) v (renameType st t)
 
         renameType st (PrimType t)  = PrimType t
         renameType st (AliasType n) = AliasType $ renameAlias st n
@@ -424,7 +431,7 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         renameType st (CompType t)  = CompType  $ renameCompType st t
 
         renameAlias :: CStyle -> Name -> Name
-        renameAlias st n = convertType n
+        renameAlias st n = translType n
         
         renameRefType :: CStyle -> RefType -> RefType
         renameRefType st (Pointer t) = Pointer (renameType st t)
@@ -434,9 +441,9 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         renameFunType st (Function as r) = Function (fmap (renameType st) as) (renameType st r)
         
         renameCompType :: CStyle -> CompType -> CompType
-        renameCompType st (Enum ns)     = Enum   $ fmap convertEnumField ns
-        renameCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (convertStructField n, renameType st t)) ns
-        renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (convertUnionField n, renameType st t)) ns
+        renameCompType st (Enum ns)     = Enum   $ fmap translEnumField ns
+        renameCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField n, renameType st t)) ns
+        renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, renameType st t)) ns
         renameCompType st (BitField ns) = notSupported "Bit-fields"
         
         -- If the type name is a suffix of the module name, we simplify it to avoid redundancy
