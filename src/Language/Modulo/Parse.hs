@@ -78,6 +78,17 @@ parseModuleName = do
     (x:xs) <- identifier lexer `sepBy1` (string ".")
     return . ModuleName $ x :| xs
 
+parseUName :: Parser Name
+parseUName = Name <$> lname
+
+parseName :: Parser Name
+parseName = do
+    r <- identifier lexer `sepBy1` (string ".")
+    return $ case r of
+        [x]    -> Name x
+        (x:xs) -> QName (ModuleName $ x :| init xs) (last xs)
+
+
 parseImport :: Parser ModuleName
 parseImport = do
     reserved lexer "import"
@@ -85,13 +96,13 @@ parseImport = do
     semi lexer
     return x
 
-parseNameType :: Parser (Name, Type)
-parseNameType = do
-    name <- lname
+parseUNameType :: Parser (Name, Type)
+parseUNameType = do
+    name <- parseUName
     char ':'
     optional lspace
     typ <- parseType
-    return $ (Name name, typ)
+    return $ (name, typ)
 
 parseDecl :: Parser Decl
 parseDecl = mzero
@@ -104,12 +115,12 @@ parseDecl = mzero
 parseTypeDec :: Parser Decl
 parseTypeDec = do
     reserved lexer "type"
-    name <- lname
+    name <- parseUName
     char '='
     optional lspace
     typ <- parseType
     semi lexer
-    return $ TypeDecl (Name name) typ
+    return $ TypeDecl name typ
 
 parseTagDec :: Parser Decl
 parseTagDec = do
@@ -121,7 +132,7 @@ parseTagDec = do
 -- TODO handle non-function types
 parseFunDec :: Parser Decl
 parseFunDec = do
-    (name, FunType typ) <- parseNameType
+    (name, FunType typ) <- parseUNameType
     semi lexer
     return $ FunctionDecl name typ
 
@@ -186,18 +197,18 @@ parseEnumType = do
     reserved lexer "enum"
     char '{'
     optional lspace
-    (n:ns) <- lname `sepBy` (spaceAround $ char ',')
+    (n:ns) <- parseUName `sepBy` (spaceAround $ char ',')
     optional lspace
     char '}'
     optional lspace
-    return $ CompType $ Enum (fmap Name $ n :| ns)
+    return $ CompType $ Enum (n :| ns)
 
 parseUnionType :: Parser Type
 parseUnionType = do
     reserved lexer "union"
     char '{'
     optional lspace
-    (n:ns) <- parseNameType `sepBy` (spaceAround $ char ',')
+    (n:ns) <- parseUNameType `sepBy` (spaceAround $ char ',')
     optional lspace
     char '}'
     return $ CompType $ Union (n :| ns)
@@ -207,7 +218,7 @@ parseStructType = do
     reserved lexer "struct"
     char '{'
     optional lspace
-    (n:ns) <- parseNameType `sepBy1` (spaceAround $ char ',')
+    (n:ns) <- parseUNameType `sepBy1` (spaceAround $ char ',')
     optional lspace
     char '}'
     return $ CompType $ Struct (n :| ns)
@@ -219,8 +230,8 @@ parseBitfieldType = do
 
 parseAliasType :: Parser Type
 parseAliasType = do
-    name <- lname
-    return $ AliasType (Name name)
+    name <- parseName
+    return $ AliasType name
 
 parsePrimType :: Parser Type
 parsePrimType = mzero
@@ -256,7 +267,7 @@ parsePrimType = mzero
     <|> "Double"        ==> Double
     <|> "LongDouble"    ==> LongDouble
     where
-        (==>) s t = lres s >> return (PrimType t)
+        s ==> t = lres s >> return (PrimType t)
 
 
 -- Extra combinators, not exported
