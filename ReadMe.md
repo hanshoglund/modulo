@@ -74,8 +74,8 @@ Like C, the module language uses structural typing for pointers and functions, b
 nominal typing for structures and unions. Thus in the following example values of type
 `A` and `B` are interchangeable, but values of type `C` and `D` are not.
 
-    type A = Ptr Int
-    type B = Ptr Int
+    type A = Int*
+    type B = Int*
     type C = struct { x : Int, y : Int }
     type D = struct { x : Int, y : Int }
 
