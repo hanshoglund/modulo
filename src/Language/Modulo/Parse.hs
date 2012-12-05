@@ -37,7 +37,7 @@ import qualified Data.List.NonEmpty
 -- the resulting module otherwise.
 --
 parse :: String -> Either ParseError Module
-parse str = runParser parseModule () "" str
+parse str = runParser modParser () "" str
 
 -- |
 -- Parse a module description from the given file, or fail if unsuccessful.
@@ -47,7 +47,7 @@ parse str = runParser parseModule () "" str
 unsafeParseFile :: FilePath -> IO Module
 unsafeParseFile path = do
     str <- readFile path
-    case (runParser parseModule () path str) of
+    case (runParser modParser () path str) of
         Left e -> error . show $ e
         Right m -> return m
 
@@ -60,92 +60,92 @@ unsafeParseFile path = do
 -- Parser
 -------------------------------------------------------------------------------------
 
-parseModule :: Parser Module
-parseModule = do
+modParser :: Parser Module
+modParser = do
     optional lspace
     reserved lexer "module"
-    name <- parseModuleName
+    name <- modNameParser
     char '{'
     optional lspace
-    imps <- many parseImport
-    decls <- many parseDecl
+    imps <- many impParser
+    decls <- many declParser
     char '}'
     optional lspace
     return $ Module name imps decls
 
-parseModuleName :: Parser ModuleName
-parseModuleName = do
+modNameParser :: Parser ModuleName
+modNameParser = do
     (x:xs) <- identifier lexer `sepBy1` (string ".")
     return . ModuleName $ x :| xs
 
-parseUName :: Parser Name
-parseUName = Name <$> lname
+unameParser :: Parser Name
+unameParser = Name <$> lname
 
-parseName :: Parser Name
-parseName = do
+nameParser :: Parser Name
+nameParser = do
     r <- identifier lexer `sepBy1` (string ".")
     return $ case r of
         [x]    -> Name x
         (x:xs) -> QName (ModuleName $ x :| init xs) (last xs)
 
 
-parseImport :: Parser ModuleName
-parseImport = do
+impParser :: Parser ModuleName
+impParser = do
     reserved lexer "import"
-    x <- parseModuleName
+    x <- modNameParser
     semi lexer
     return x
 
-parseUNameType :: Parser (Name, Type)
-parseUNameType = do
-    name <- parseUName
+unameTypeParser :: Parser (Name, Type)
+unameTypeParser = do
+    name <- unameParser
     char ':'
     optional lspace
-    typ <- parseType
+    typ <- typeParser
     return $ (name, typ)
 
-parseDecl :: Parser Decl
-parseDecl = mzero
-    <|> parseTypeDec
-    <|> parseTagDec
-    <|> parseFunDec
-    -- <|> parseConstDec
-    -- <|> parseGlobalDec
+declParser :: Parser Decl
+declParser = mzero
+    <|> typeDecParser
+    <|> tagDecParser
+    <|> funDecParser
+    -- <|> constDecParser
+    -- <|> globalDecParser
 
-parseTypeDec :: Parser Decl
-parseTypeDec = do
+typeDecParser :: Parser Decl
+typeDecParser = do
     reserved lexer "type"
-    name <- parseUName
+    name <- unameParser
     char '='
     optional lspace
-    typ <- parseType
+    typ <- typeParser
     semi lexer
     return $ TypeDecl name typ
 
-parseTagDec :: Parser Decl
-parseTagDec = do
+tagDecParser :: Parser Decl
+tagDecParser = do
     reserved lexer "tagname"
-    typ <- parseType
+    typ <- typeParser
     semi lexer
     return $ TagDecl typ
 
 -- TODO handle non-function types
-parseFunDec :: Parser Decl
-parseFunDec = do
-    (name, FunType typ) <- parseUNameType
+funDecParser :: Parser Decl
+funDecParser = do
+    (name, FunType typ) <- unameTypeParser
     semi lexer
     return $ FunctionDecl name typ
 
-parseConstDec :: Parser Decl
-parseConstDec = error "Can not parse constants yet"
+constDecParser :: Parser Decl
+constDecParser = error "Can not parse constants yet"
 
-parseGlobalDec :: Parser Decl
-parseGlobalDec = error "Can not parse globals yet"
+globalDecParser :: Parser Decl
+globalDecParser = error "Can not parse globals yet"
 
 
-parseType :: Parser Type
-parseType = do
-    typ <- parseTypeStart
+typeParser :: Parser Type
+typeParser = do
+    typ <- typeStartParser
     -- Check for postfix *
     n <- occs (char '*')
     return $ times n (RefType . Pointer) typ
@@ -153,23 +153,23 @@ parseType = do
         times 0 f = id
         times n f = f . times (n-1) f
 
-parseTypeStart :: Parser Type
-parseTypeStart = mzero
-    <|> parseArrayType
-    <|> parseFunType
-    <|> parseEnumType
-    <|> parseUnionType
-    <|> parseStructType
-    <|> parseBitfieldType
-    <|> parsePrimType
-    <|> parseAliasType
+typeStartParser :: Parser Type
+typeStartParser = mzero
+    <|> arrayTypeParser
+    <|> funTypeParser
+    <|> enumTypeParser
+    <|> unionTypeParser
+    <|> structTypeParser
+    <|> bitfieldTypeParser
+    <|> primTypeParser
+    <|> aliasTypeParser
 
 
-parseArrayType :: Parser Type
-parseArrayType = do
+arrayTypeParser :: Parser Type
+arrayTypeParser = do
     char '['
     optional lspace
-    typ <- parseType
+    typ <- typeParser
     optional lspace
     char 'x'
     optional lspace
@@ -178,63 +178,63 @@ parseArrayType = do
     optional lspace
     return $ RefType $ Array typ (fromInteger n)
 
-parseFunType :: Parser Type
-parseFunType = do
+funTypeParser :: Parser Type
+funTypeParser = do
     char '('
     optional lspace
-    args <- parseType `sepBy` (spaceAround $ char ',')
+    args <- typeParser `sepBy` (spaceAround $ char ',')
     optional lspace
     char ')'
     optional lspace
     string "->"
     optional lspace
-    res <- parseType
+    res <- typeParser
     return $ FunType $ Function args res
 
 
-parseEnumType :: Parser Type
-parseEnumType = do
+enumTypeParser :: Parser Type
+enumTypeParser = do
     reserved lexer "enum"
     char '{'
     optional lspace
-    (n:ns) <- parseUName `sepBy` (spaceAround $ char ',')
+    (n:ns) <- unameParser `sepBy` (spaceAround $ char ',')
     optional lspace
     char '}'
     optional lspace
     return $ CompType $ Enum (n :| ns)
 
-parseUnionType :: Parser Type
-parseUnionType = do
+unionTypeParser :: Parser Type
+unionTypeParser = do
     reserved lexer "union"
     char '{'
     optional lspace
-    (n:ns) <- parseUNameType `sepBy` (spaceAround $ char ',')
+    (n:ns) <- unameTypeParser `sepBy` (spaceAround $ char ',')
     optional lspace
     char '}'
     return $ CompType $ Union (n :| ns)
 
-parseStructType :: Parser Type
-parseStructType = do
+structTypeParser :: Parser Type
+structTypeParser = do
     reserved lexer "struct"
     char '{'
     optional lspace
-    (n:ns) <- parseUNameType `sepBy1` (spaceAround $ char ',')
+    (n:ns) <- unameTypeParser `sepBy1` (spaceAround $ char ',')
     optional lspace
     char '}'
     return $ CompType $ Struct (n :| ns)
 
-parseBitfieldType :: Parser Type
-parseBitfieldType = do
+bitfieldTypeParser :: Parser Type
+bitfieldTypeParser = do
     reserved lexer "bitfield"
     error "Can not parse bitfields yet"
 
-parseAliasType :: Parser Type
-parseAliasType = do
-    name <- parseName
+aliasTypeParser :: Parser Type
+aliasTypeParser = do
+    name <- nameParser
     return $ AliasType name
 
-parsePrimType :: Parser Type
-parsePrimType = mzero
+primTypeParser :: Parser Type
+primTypeParser = mzero
     <|> "Int8"          ==> Int8
     <|> "Int16"         ==> Int16
     <|> "Int32"         ==> Int32
