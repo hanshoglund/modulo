@@ -85,6 +85,14 @@ parseImport = do
     semi lexer
     return x
 
+parseNameType :: Parser (Name, Type)
+parseNameType = do
+    name <- lname
+    char ':'
+    optional lspace
+    typ <- parseType
+    return $ (Name name, typ)
+
 parseDecl :: Parser Decl
 parseDecl = mzero
     <|> parseTypeDec
@@ -116,15 +124,6 @@ parseFunDec = do
     (name, FunType typ) <- parseNameType
     semi lexer
     return $ FunctionDecl name typ
-
-parseNameType :: Parser (Name, Type)
-parseNameType = do
-    name <- lname
-    char ':'
-    optional lspace
-    typ <- parseType
-    return $ (Name name, typ)
-
 
 parseConstDec :: Parser Decl
 parseConstDec = error "Can not parse constants yet"
@@ -218,6 +217,11 @@ parseBitfieldType = do
     reserved lexer "bitfield"
     error "Can not parse bitfields yet"
 
+parseAliasType :: Parser Type
+parseAliasType = do
+    name <- lname
+    return $ AliasType (Name name)
+
 parsePrimType :: Parser Type
 parsePrimType = mzero
     <|> "Int8"          ==> Int8
@@ -254,11 +258,6 @@ parsePrimType = mzero
     where
         (==>) s t = lres s >> return (PrimType t)
 
-parseAliasType :: Parser Type
-parseAliasType = do
-    name <- lname
-    return $ AliasType (Name name)
-
 
 -- Extra combinators, not exported
 occs p        = length <$> many p
@@ -272,60 +271,26 @@ spaceAround p = spaceBefore (spaceAfter p)
 
 lexer :: TokenParser ()
 lexer = makeTokenParser $
-    LanguageDef { commentStart    =  "/*",
-                  commentEnd      =  "*/",
-                  commentLine     =  "//",
-                  nestedComments  =  True,
-                  identStart      =  (letter <|> char '_'),
-                  identLetter     =  (letter <|> char '_'),
-                  opStart         =  mzero,
-                  opLetter        =  mzero,
-                  reservedNames   =  reservedNames,
-                  reservedOpNames =  mzero,
-                  caseSensitive   =  True }
-
+    LanguageDef { 
+        commentStart    =  "/*",
+        commentEnd      =  "*/",
+        commentLine     =  "//",
+        nestedComments  =  True,
+        identStart      =  (letter <|> char '_'),
+        identLetter     =  (letter <|> char '_'),
+        opStart         =  mzero,
+        opLetter        =  mzero,
+        reservedNames   =  reservedNames,
+        reservedOpNames =  mzero,
+        caseSensitive   =  True }
     where
         reservedNames = [
-            "module",
-            "import",
-            "type",
-            "tagname",
-            "enum",
-            "union",
-            "struct",
-            "bitfield",
-
-            "Int",
-            "Void",
-            "Size",
-            "Ptrdiff",
-            "Intptr",
-            "UIntptr",
-
-            "Char",
-            "Short",
-            "Int",
-            "Long",
-            "LongLong",
-
-            "UChar",
-            "UShort",
-            "UInt",
-            "ULong",
-            "ULongLong",
-
-            "Float",
-            "Double",
-            "LongDouble",
-
-            "Int8",
-            "Int16",
-            "Int32",
-            "Int64",
-            "UInt8",
-            "UInt16",
-            "UInt32",
-            "UInt64" ]
+            "module", "import", "type", "tagname", "enum", "union", "struct", "bitfield",
+            "Int", "Void", "Size", "Ptrdiff", "Intptr", "UIntptr",
+            "Char", "Short", "Int", "Long", "LongLong",
+            "UChar", "UShort", "UInt", "ULong", "ULongLong",
+            "Float", "Double", "LongDouble",
+            "Int8", "Int16", "Int32", "Int64", "UInt8", "UInt16", "UInt32", "UInt64" ]
 
 -- Convenient synonyms, not exported
 lnat   = natural lexer
