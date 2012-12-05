@@ -32,6 +32,7 @@ library
 
         Language.Modulo.Load
         Language.Modulo.Parse
+        Language.Modulo.Rename
         Language.Modulo.Util
         Language.Modulo.Util.Mangle
         Language.Modulo.Util.Unmangle

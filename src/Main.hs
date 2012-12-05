@@ -17,6 +17,7 @@ import Language.Modulo.C
 import Language.Modulo.Lisp
 import Language.Modulo.Load
 import Language.Modulo.Parse
+import Language.Modulo.Rename
 import Language.Modulo.Util
 
 data ModLang
@@ -108,13 +109,18 @@ compileFile opts input output = do
     let paths = fromMaybe [] (findPath opts)
     
     s <- hGetContents input
-    let m = unsafeParse s
-    -- renaming
-    let c = printMod lang m
+    let m  = unsafeParse s
+    mr <-    unsafeRename paths m
+    let c  = printMod lang mr
     hPutStr output c
     
     return ()
-    where               
+    where           
+        unsafeRename :: [ModulePath] -> Module -> IO Module
+        unsafeRename paths m = do
+            deps <- loadDependencies (withStdModulePaths paths) m
+            return $ resolve deps m
+            
         unsafeParse :: String -> Module
         unsafeParse s = case (parse s) of
             Left e -> error $ "Parse error: " ++ show e

@@ -402,7 +402,8 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         valuePrefix    = valuePrefixMangler st $ modName
 
         translType    :: Name -> Name
-        translType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName -- TODO disamb struct enum etc
+        translType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName 
+        
         translFun     :: Name -> Name
         translFun     = Name . withPrefix valuePrefix . functionNameMangler st . unmangleName
         translConst   :: Name -> Name
@@ -417,7 +418,7 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         translEnumField  :: Name -> Name
         translEnumField   = Name . enumFieldMangler st . unmangleName
 
-        
+        -- TODO disamb struct enum etc
         renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (renameType st t)
         renameDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (renameFunType st t)
         renameDecl st (TagDecl t)         = TagDecl (renameType st t)

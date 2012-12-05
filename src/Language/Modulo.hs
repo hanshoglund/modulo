@@ -84,11 +84,14 @@ module Language.Modulo (
         ModuleName(..),
         toModuleName,
         getModuleNameList,
+
+        -- ** Names
+        Name(..),
+        getName,
         
         -- ** Declarations
         Decl(..),
-        Name(..),
-        getName,
+        getDeclName,
         Value(..),
 
         -- ** Types
@@ -177,6 +180,12 @@ data Decl
     | GlobalDecl Name (Maybe Value) Type -- ^ Declares a global variable.
     deriving (Eq, Show)
 
+getDeclName :: Decl -> Maybe Name
+getDeclName (TypeDecl n t)      = Just n
+getDeclName (FunctionDecl n t)  = Just n
+getDeclName (TagDecl t)         = Nothing
+getDeclName (ConstDecl n v t)   = Just n
+getDeclName (GlobalDecl n v t)  = Just n
 
 -- | 
 -- A value is anything that can be declared as a C constant.
