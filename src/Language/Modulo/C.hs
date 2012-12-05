@@ -385,10 +385,16 @@ convertFooter st mod = mempty
 -------------------------------------------------------------------------------------
 -- Renaming
 
+
+-- |
+-- Rewrite a module to use C-style names.
+--
+-- The module returned from this function will have no QName constructors.
+--
 renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
-        modName = concatMap unmangle . NonEmpty.toList $ getModuleName n
+        modName = concatMap unmangle . getModuleNameList $ n
         
         -- TODO these should receive a module map to lookup the correct module
         -- Alternatively, we could rewrite the core language to include qualified names
@@ -443,7 +449,8 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         unmangle = Unmangle.unmangle
 
         unmangleName :: Name -> [String]
-        unmangleName = unmangle . getName
+        unmangleName (Name n)    = unmangle n
+        unmangleName (QName m n) = getModuleNameList m ++ unmangle n
         
         
 

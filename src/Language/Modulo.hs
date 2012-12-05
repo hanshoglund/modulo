@@ -88,6 +88,7 @@ module Language.Modulo (
         -- ** Declarations
         Decl(..),
         Name(..),
+        getName,
         Value(..),
 
         -- ** Types
@@ -129,6 +130,7 @@ instance Ord Module where
         
 -- | 
 -- A module name is a non-empty list of strings.
+--
 newtype ModuleName 
     = ModuleName 
       { 
@@ -142,10 +144,8 @@ toModuleName = ModuleName . NonEmpty.fromList
 getModuleNameList :: ModuleName -> [String]
 getModuleNameList = NonEmpty.toList . getModuleName
 
-
 instance Show ModuleName where
     show (ModuleName (x :| xs)) = concat . List.intersperse "." $ x : xs
-
 
 
 -- |
@@ -153,11 +153,17 @@ instance Show ModuleName where
 --
 -- Note that any Unicode string may be used as a name.
 --
-data Name = Name { getName :: String }
+data Name 
+    = Name  String
+    | QName ModuleName String
     deriving (Eq, Ord)
 
+getName :: Name -> String
+getName (Name n)    = n
+getName (QName m n) = show m ++ "." ++ n
+
 instance Show Name where
-    show (Name n) = n    
+    show = getName    
 
 
 -- | 
