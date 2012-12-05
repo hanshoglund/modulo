@@ -37,6 +37,7 @@ import Language.Modulo.Util
 import qualified Data.List.NonEmpty as NonEmpty
 
 -- We should mimic CPP behaviour or it is a bug
+-- We use usr/modules in place of usr/include etc.
 
 -- |
 -- Path where modules are stored.
@@ -69,32 +70,34 @@ absolutePaths :: [ModulePath] -> ModuleName -> [FilePath]
 absolutePaths ps n = map (++ "/" ++ relativePath n) ps
 
 
+-- TODO detect and fail on recursive dependencies
+-- TODO generally more safe version of loadModule and loadDepencencies
+
 -- |
 -- Load the dependencies of the given module.
 --
--- This function will traverse the loaded module recursively and block if a recursive dependency
--- is encountered.
+-- Dependencies of the loaded modules are loaded transitively. 
+-- This function blocks if a recursive dependency is encountered.
 -- 
 loadDependencies :: [ModulePath] -> Module -> IO [Module]
 loadDependencies ps m = do
-    let deps = modImports m
-    depsM <- concatMapM (loadModule ps) deps
-    return $ m : depsM
+    let depNames = modImports m
+    deps <- concatMapM (loadModule ps) depNames
+    return $ m : deps
 
-
-
--- TODO detect and fail on recursive dependencies
--- TODO generally more safe version of loadModule
 
 -- |
 -- Load a module of the given name.
 -- 
+-- Dependencies of the loaded modules are loaded transitively. 
+-- This function blocks if a recursive dependency is encountered.
+-- 
 loadModule :: [ModulePath] -> ModuleName -> IO [Module]
 loadModule ps n = do
     m <- unsafeLoad ps n
-    let deps = modImports m
-    depsM <- concatMapM (loadModule ps) deps
-    return $ m : depsM
+    let depNames = modImports m
+    deps <- concatMapM (loadModule ps) depNames
+    return $ m : deps
     
     where
         unsafeLoad :: [ModulePath] -> ModuleName -> IO Module

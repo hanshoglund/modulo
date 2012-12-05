@@ -109,6 +109,7 @@ compileFile opts input output = do
     
     s <- hGetContents input
     let m = unsafeParse s
+    -- renaming
     let c = printMod lang m
     hPutStr output c
     
