@@ -85,24 +85,6 @@ modNameParser = do
     (x:xs) <- identifier lexer `sepBy1` (string ".")
     return . ModuleName $ x :| xs
 
-nameParser :: Parser Name
-nameParser = do
-    r <- identifier lexer `sepBy1` (string ".")
-    return $ case r of
-        [x]    -> Name x
-        (x:xs) -> QName (ModuleName $ x :| init xs) (last xs)
-
-unameParser :: Parser Name
-unameParser = Name <$> lname
-
-unameTypeParser :: Parser (Name, Type)
-unameTypeParser = do
-    name <- unameParser
-    char ':'
-    optional lspace
-    typ <- typeParser
-    return $ (name, typ)
-
 impParser :: Parser ModuleName
 impParser = do
     reserved lexer "import"
@@ -143,10 +125,10 @@ funDeclParser = do
     return $ FunctionDecl name typ
 
 constDeclParser :: Parser Decl
-constDeclParser = error "Can not parse constants yet"
+constDeclParser = notSupported "Constant parsing"
 
 globalDeclParser :: Parser Decl
-globalDeclParser = error "Can not parse globals yet"
+globalDeclParser = notSupported "Global parsing"
 
 -------------------------------------------------------------------------------------
 
@@ -239,7 +221,7 @@ structTypeParser = do
 bitfieldTypeParser :: Parser Type
 bitfieldTypeParser = do
     reserved lexer "bitfield"
-    error "Can not parse bitfields yet"
+    notSupported "Bitfield parsing"
 
 primTypeParser :: Parser Type
 primTypeParser = mzero
@@ -282,6 +264,26 @@ aliasTypeParser = do
     name <- nameParser
     return $ AliasType name
 
+-------------------------------------------------------------------------------------
+
+nameParser :: Parser Name
+nameParser = do
+    r <- identifier lexer `sepBy1` (string ".")
+    return $ case r of
+        [x]    -> Name x
+        (x:xs) -> QName (ModuleName $ x :| init xs) (last xs)
+
+unameParser :: Parser Name
+unameParser = Name <$> lname
+
+unameTypeParser :: Parser (Name, Type)
+unameTypeParser = do
+    name <- unameParser
+    char ':'
+    optional lspace
+    typ <- typeParser
+    return $ (name, typ)
+                             
 
 -- Extra combinators, not exported
 occs p        = length <$> many p
@@ -321,4 +323,7 @@ lnat   = natural lexer
 lname  = identifier lexer
 lres   = reserved lexer
 lspace = whiteSpace lexer
+
+
+notSupported x = error $ "Not supported yet: " ++ x
 
