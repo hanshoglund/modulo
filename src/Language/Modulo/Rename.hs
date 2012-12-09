@@ -29,7 +29,11 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- |
 -- Rewrite all unqualified names as qualified names.
 --
--- This applies to references, not to declarations.
+-- This function is partial with the following invariants:
+--
+-- * Received module has no QName constructors
+--
+-- * Returned module has no Name constructors
 --
 rename :: [Module] -> Module -> Module
 rename deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
@@ -60,7 +64,8 @@ rename deps mod@(Module n is ds) = Module n is (map renameDecl ds)
         renameCompType (BitField ns) = notSupported "Bit-fields"
 
 qualify :: Module -> Name -> Name
-qualify m (Name n) = QName (modName m) n
+qualify m (Name n)    = QName (modName m) n
+qualify _ (QName _ _) = error "Name already qualified"
 
 resolveName :: [Module] -> Name -> Name
 resolveName ms (QName m n) = QName m n
@@ -78,6 +83,13 @@ findName (m:ms) n
     | otherwise      = findName ms n
     where
         mNs = catMaybes . map getDeclName . modDecls $ m 
+
+
+
+
+
+
+
 
 
 

@@ -79,10 +79,7 @@ data CStyle =
         valuePrefixMangler  :: [String] -> String,   -- ^ Prefix for values
 
         -- Types
-        implStructNameMangler :: [String] -> String, -- ^ Mangler for implementation struct names
-        realStructNameMangler :: [String] -> String, -- ^ Mangler for ordinary struct names
-        unionNameMangler      :: [String] -> String, -- ^ Mangler for union names
-        enumNameMangler       :: [String] -> String, -- ^ Mangler for enum names
+        typeMangler :: [String] -> String, -- ^ Mangler for implementation struct names
 
         -- Fields
         structFieldMangler  :: [String] -> String,   -- ^ Mangler for struct fields
@@ -90,9 +87,9 @@ data CStyle =
         enumFieldMangler    :: [String] -> String,   -- ^ Mangler for enum fields
 
         -- Functions and values
-        constNameMangler    :: [String] -> String,   -- ^ Mangler for constant values
-        globalNameMangler   :: [String] -> String,   -- ^ Mangler for global variables
-        functionNameMangler :: [String] -> String    -- ^ Mangler for global functions
+        constMangler    :: [String] -> String,   -- ^ Mangler for constant values
+        globalMangler   :: [String] -> String,   -- ^ Mangler for global variables
+        funcMangler :: [String] -> String    -- ^ Mangler for global functions
 
         -- Options
         --  Wrap in extern C block
@@ -102,7 +99,7 @@ data CStyle =
 
 -- | Default instance using 'stdStyle'.
 instance Default CStyle where
-    def = stdStyle
+    def = gtkStyle
 -- | Left-biased Semigroup instance.
 instance Semigroup CStyle where
     a <> b = a
@@ -152,9 +149,6 @@ stdStyle = CStyle
     (withSuffix "_" . concatSep "_" . fmap toLowerString)
 
     (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_" . fmap toLowerString)
     (concatSep "_" . fmap toLowerString)
     (concatSep "_" . fmap toLowerString)
@@ -184,9 +178,6 @@ cairoStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
     (concatSep "_")
     (concatSep "_")
@@ -218,10 +209,7 @@ gtkStyle = CStyle
     (concatSep "_")
     (concatSep "_")
 
-    (concatSep "_" . withSuffix ["t"])
-    (concatSep "_" . withSuffix ["t"])
-    (concatSep "_" . withSuffix ["t"])
-    (concatSep "_" . withSuffix ["t"])
+    capitalCase
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
@@ -251,9 +239,6 @@ appleStyle = CStyle
     (capitalCase)
     (mixedCase)
 
-    capitalCase
-    capitalCase
-    capitalCase
     capitalCase
 
     (withPrefix "m" . capitalCase)
@@ -285,9 +270,6 @@ haskellStyle = CStyle
     (capitalCase)
     (mixedCase)
 
-    capitalCase
-    capitalCase
-    capitalCase
     capitalCase
 
     mixedCase
@@ -395,14 +377,14 @@ renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
         translType    :: Name -> Name
-        translType    = Name . implStructNameMangler st . unmangleName
+        translType    = Name . typeMangler st . unmangleName
 
         translFun     :: Name -> Name
-        translFun     = Name . functionNameMangler st . unmangleName
+        translFun     = Name . funcMangler st . unmangleName
         translConst   :: Name -> Name
-        translConst   = Name . constNameMangler st . unmangleName
+        translConst   = Name . constMangler st . unmangleName
         translGlobal  :: Name -> Name
-        translGlobal  = Name . globalNameMangler st . unmangleName
+        translGlobal  = Name . globalMangler st . unmangleName
 
         translStructField  :: Name -> Name
         translStructField = Name . structFieldMangler st . unmangleName
@@ -440,12 +422,6 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         renameCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField n, renameType st t)) ns
         renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, renameType st t)) ns
         renameCompType st (BitField ns) = notSupported "Bit-fields"
-
-        -- If the type name is a suffix of the module name, we simplify it to avoid redundancy
-        simplifyTypeName :: [String] -> [String] -> [String]
-        simplifyTypeName mod typ
-            | typ `List.isSuffixOf` mod = []
-            | otherwise                 = typ
 
         unmangle :: String -> [String]
         unmangle = Unmangle.unmangle
