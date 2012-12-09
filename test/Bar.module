@@ -1,0 +1,39 @@
+
+module Bar
+{                  
+    type A = opaque;
+    type B = opaque;
+    foo : A -> B;
+    foo : (A,A) -> B;
+
+    // b : (Float, Int8, UInt32) -> Int*;
+    // b : Float -> Float;
+    //     
+    // type A = (Int, Int) -> Int;
+    // type A = Int -> (Int*);
+    // type A = (Int -> Int)*;
+    // 
+    // type A = Int -> Float -> Double;
+    // type A = Int -> (Float -> Double)*;
+    // type A = (Int -> Float)* -> Double;
+    // 
+    // type Eq = struct {
+    //     eq    : Intptr -> Intptr -> Bool,
+    //     notEq : Intptr -> Intptr -> Bool
+    // };
+    // 
+    // type Num = struct
+    // {
+    //     add : (Int -> Int -> Int)*,
+    //     add : (Int -> Int -> Int)*,
+    //     add : (Int -> Int -> Int)*,
+    //     add : (Int -> Int -> Int)*,
+    //     add : (Int -> Int -> Int)*,
+    //     add : Int  -> Int
+    // }; 
+}
+
+
+//   { a }        struct { a }
+//   { a | b }    union { struct { a } | struct { b} }
+//   a | { b, c }
