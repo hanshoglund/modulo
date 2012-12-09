@@ -339,6 +339,7 @@ convertHeader st mod = mempty
         guard = guardMangler st name
         imports = concatSep "\n"
             . map (withPrefix ("#" ++ includeDirective st ++ " <") . withSuffix ".h>" . concatSep "/" . getModuleNameList)
+            . map fst
             . modImports
             $ mod
 

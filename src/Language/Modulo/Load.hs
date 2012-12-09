@@ -81,7 +81,7 @@ absolutePaths ps n = map (++ "/" ++ relativePath n) ps
 -- 
 loadDependencies :: [ModulePath] -> Module -> IO [Module]
 loadDependencies ps m = do
-    let depNames = modImports m
+    let depNames =filterImports $ modImports m
     deps <- concatMapM (loadModule ps) depNames
     return $ m : deps
 
@@ -95,7 +95,7 @@ loadDependencies ps m = do
 loadModule :: [ModulePath] -> ModuleName -> IO [Module]
 loadModule ps n = do
     m <- unsafeLoad ps n
-    let depNames = modImports m
+    let depNames = filterImports $ modImports m
     deps <- concatMapM (loadModule ps) depNames
     return $ m : deps
     
@@ -115,6 +115,16 @@ loadModule ps n = do
             Left e -> error $ "Parse error: " ++ show e
             Right m -> m
 
+-- |
+-- Extract imports to load based on the import convention.
+--
+-- This function should probably use some plugin-style system to alter the
+-- loading mechanism, for now non-standard imports are just ignored.
+--
+filterImports :: [(ModuleName, Maybe String)] -> [ModuleName]
+filterImports = concatMap $ \imp -> case imp of
+    (name, Nothing)    -> [name]
+    (name, Just conv)  -> []  -- ignore
 
 
 -- | 

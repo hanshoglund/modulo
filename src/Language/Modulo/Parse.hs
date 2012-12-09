@@ -79,12 +79,13 @@ modNameParser = do
     (x:xs) <- identifier lexer `sepBy1` (string ".")
     return . ModuleName $ x :| xs
 
-impParser :: Parser ModuleName
+impParser :: Parser (ModuleName, Maybe String)
 impParser = do
     reserved lexer "import"
-    x <- modNameParser
+    conv <- optionMaybe lstr
+    name <- modNameParser
     semi lexer
-    return x
+    return (name, conv)
 
 declParser :: Parser Decl
 declParser = mzero
@@ -323,6 +324,7 @@ lexer = makeTokenParser $ LanguageDef {
 -- Convenient synonyms, not exported
 llex   = lexeme lexer
 lnat   = natural lexer
+lstr   = stringLiteral lexer
 lname  = identifier lexer
 lres   = reserved lexer
 lspace = whiteSpace lexer
