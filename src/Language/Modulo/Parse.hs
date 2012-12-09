@@ -137,9 +137,9 @@ opaqueParser = reserved lexer "opaque" >> return ()
 
 typeParser :: Parser Type
 typeParser = do
-    [typ] <- typeStartParser
+    typs <- typeStartParser
     mods <- typeEndParser
-    return $ mods typ
+    return $ mods typs
 
 typeStartParser :: Parser [Type]
 typeStartParser = mzero
@@ -152,8 +152,8 @@ typeStartParser = mzero
     <|> single <$> primTypeParser
     <|> single <$> aliasTypeParser
 
-typeEndParser :: Parser (Type -> Type)
-typeEndParser = foldr (flip (.)) id <$> many (ptr <|> func)
+typeEndParser :: Parser ([Type] -> Type)
+typeEndParser = foldr (flip c2) head <$> many (ptr <|> func)
     where
         ptr = do
             llex $ char '*'
@@ -163,12 +163,18 @@ typeEndParser = foldr (flip (.)) id <$> many (ptr <|> func)
             typ <- typeParser
             return $ mkFun typ
     
-        mkPtr :: Type -> Type
-        mkPtr = RefType . Pointer
+        mkPtr :: [Type] -> Type
+        mkPtr [x] = RefType . Pointer $ x
+        mkPtr _   = error "Can not make pointer of argument head"
+        -- TODO reflect up to parser hierarchy
 
-        mkFun :: Type -> Type -> Type
-        mkFun r a = FunType $ Function [a] r
+        mkFun :: Type -> [Type] -> Type
+        mkFun r as = FunType $ Function as r
 
+        -- TODO is this (=<=) in Control.Comonad ?
+        c2 :: ([b] -> c) -> ([a] -> b) -> [a] -> c
+        c2 g f = g . single . f
+            
 
 -- TODO support named arguments
 parenTypeParser :: Parser [Type]
@@ -323,5 +329,6 @@ lspace = whiteSpace lexer
 
 
 single x = [x]
+
 notSupported x = error $ "Not supported yet: " ++ x
 
