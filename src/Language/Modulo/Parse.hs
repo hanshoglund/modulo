@@ -110,12 +110,16 @@ tagDeclParser = do
     semi lexer
     return $ TagDecl typ
 
--- TODO handle non-function types
+
+-- TODO rewrite in declarative style
 funDeclParser :: Parser Decl
 funDeclParser = do
-    (name, FunType typ) <- unameTypeParser
+    (name, typ) <- unameTypeParser
     semi lexer
-    return $ FunctionDecl name typ
+    case typ of
+        (FunType func) -> return $ FunctionDecl name func 
+        _              -> unexpected "Expected function type"
+
 
 constDeclParser :: Parser Decl
 constDeclParser = notSupported "Constant parsing"
