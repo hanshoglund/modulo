@@ -67,7 +67,7 @@ readPackage :: Maybe String -> ModOpt
 readPackage = Package . maybe "user" id
 
 
-version = "modulo-0.5"
+version = "modulo-1.0"
 header  = "Usage: modulo [options]\n" ++
           "Usage: modulo [options] files...\n" ++
           "\n" ++

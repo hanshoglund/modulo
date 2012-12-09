@@ -1,6 +1,6 @@
 
 name:           modulo
-version:        0.5
+version:        1.0
 cabal-version:  >= 0.14
 build-type:     Simple
 author:         Hans Hoglund
