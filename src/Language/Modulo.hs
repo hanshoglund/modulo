@@ -173,7 +173,7 @@ instance Show Name where
 -- An declaration maps a name to type and optionally a value.
 --
 data Decl 
-    = TypeDecl Name Type                 -- ^ Declares a type.
+    = TypeDecl Name (Maybe Type)         -- ^ Declares a type or opaque.
     | FunctionDecl Name FunType          -- ^ Declares a function.
     | TagDecl Type                       -- ^ Declares a struct or enum tag.
     | ConstDecl Name (Maybe Value) Type  -- ^ Declares a constant value.

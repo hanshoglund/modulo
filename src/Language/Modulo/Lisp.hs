@@ -96,11 +96,16 @@ convertTopLevel st (Module n is ds) = cds
         cds = map (convertDecl st) ds
 
 convertDecl :: LispStyle -> Decl -> Lisp
-convertDecl st (TypeDecl n t)      = declType st n t                -- typedef T N;
+convertDecl st (TypeDecl n Nothing)  = declOpaque st n
+convertDecl st (TypeDecl n (Just t)) = declType st n t                -- typedef T N;
 convertDecl st (FunctionDecl n t)  = declFun st n t                 -- T n (as);
 convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
 convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
+
+-- Note that this means that functions must replace pointers to opaques
+declOpaque :: LispStyle -> Name -> Lisp             
+declOpaque st n = List [symbol "defctype", symbolName n, keyword "pointer"]
 
 declType :: LispStyle -> Name -> Type -> Lisp             
 declType st n t = List [symbol "defctype", symbolName n, convertType st t]
@@ -132,8 +137,8 @@ convertAlias :: LispStyle -> Name -> Lisp
 convertAlias st n = keywordName n
 
 convertPrimType :: LispStyle -> PrimType -> Lisp
+convertPrimType st Bool       = keyword "boolean"
 convertPrimType st Void       = keyword "void"
-convertPrimType st Bool       = keyword "bool"
 convertPrimType st Char       = keyword "char" 
 convertPrimType st Short      = keyword "short" 
 convertPrimType st Int        = keyword "int" 
@@ -142,8 +147,8 @@ convertPrimType st LongLong   = keyword "long-long"
 convertPrimType st UChar      = keyword "unsigned-char" 
 convertPrimType st UShort     = keyword "unsigned-short" 
 convertPrimType st UInt       = keyword "unsigned-int" 
-convertPrimType st ULong      = keyword "unsigned-long-long" 
-convertPrimType st ULongLong  = keyword "long-long"
+convertPrimType st ULong      = keyword "unsigned-long" 
+convertPrimType st ULongLong  = keyword "unsigned-long-long" 
 convertPrimType st Float      = keyword "float" 
 convertPrimType st Double     = keyword "double" 
 convertPrimType st LongDouble = keyword "long-double"
@@ -155,18 +160,17 @@ convertPrimType st UInt8      = keyword "uint8"
 convertPrimType st UInt16     = keyword "uint16" 
 convertPrimType st UInt32     = keyword "uint32" 
 convertPrimType st UInt64     = keyword "uint64"
-
--- FIXME CFFI does not support these 
--- convertPrimType st Size       = error "Can not use size types with CFFI"
--- convertPrimType st Ptrdiff    = error "Can not use size types with CFFI"
--- convertPrimType st Intptr     = error "Can not use size types with CFFI" 
--- convertPrimType st UIntptr    = error "Can not use size types with CFFI"
--- convertPrimType st SChar      = error "Can not use signed char types with CFFI" 
-convertPrimType st _           = keyword "long"
+-- These are declared in cffi-sys, hopefully visible to cffi
+convertPrimType st Size       = keyword "size"
+convertPrimType st Ptrdiff    = keyword "ptrdiff"
+convertPrimType st Intptr     = keyword "pointer" 
+convertPrimType st UIntptr    = keyword "size"   -- ?
+convertPrimType st SChar      = notSupported "Signed chars with Lisp"
 
 convertRefType :: LispStyle -> RefType -> Lisp
 convertRefType st (Pointer t) = List [keyword "pointer", convertType st t]
 convertRefType st (Array t n) = convertType st voidPtr
+-- TODO
 
 convertFunType :: LispStyle -> FunType -> Lisp
 convertFunType st (Function as r) = convertType st voidPtr

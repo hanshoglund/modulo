@@ -120,14 +120,14 @@ stdInnerHeader _ ns = concat (post "    @{\n" cs) ++ end
         c3 = ns
         c4 = repeat "\n"
         cs = List.zipWith4 (\a b c d -> a ++ b ++ c ++ d) c1 c2 c3 c4
-        end = "    */" 
+        end = "    */"
 
 stdInnerFooter :: CStyle -> [String] -> String
 stdInnerFooter _ ns = (concat $ List.zipWith (++) c1 c2) ++ end
     where
         c1 = ["/** "] ++ repeat "    "
         c2 = replicate (length ns) "@}\n"
-        end = "    */" 
+        end = "    */"
 
 
 -- |
@@ -146,7 +146,7 @@ stdStyle :: CStyle
 stdStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpperString)
-    (stdInnerHeader stdStyle) 
+    (stdInnerHeader stdStyle)
     (stdInnerFooter stdStyle)
     (withSuffix "_" . concatSep "_" . fmap toLowerString)
     (withSuffix "_" . concatSep "_" . fmap toLowerString)
@@ -179,7 +179,7 @@ cairoStyle :: CStyle
 cairoStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpperString)
-    (stdInnerHeader cairoStyle) 
+    (stdInnerHeader cairoStyle)
     (stdInnerFooter cairoStyle)
     (concatSep "_")
     (concatSep "_")
@@ -213,7 +213,7 @@ gtkStyle :: CStyle
 gtkStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpperString)
-    (stdInnerHeader gtkStyle) 
+    (stdInnerHeader gtkStyle)
     (stdInnerFooter gtkStyle)
     (concatSep "_")
     (concatSep "_")
@@ -246,7 +246,7 @@ appleStyle :: CStyle
 appleStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpperString)
-    (stdInnerHeader stdStyle) 
+    (stdInnerHeader stdStyle)
     (stdInnerFooter stdStyle)
     (capitalCase)
     (mixedCase)
@@ -263,7 +263,7 @@ appleStyle = CStyle
     (withPrefix "k" . capitalCase)
     (withPrefix "g" . capitalCase)
     capitalCase
--- 
+--
 -- |
 -- Style similar to Haskell conventions.
 --
@@ -280,7 +280,7 @@ haskellStyle :: CStyle
 haskellStyle = CStyle
     Ifndef SystemPath "include"
     (withPrefix "_" . concatSep "_" . fmap toUpperString)
-    (stdInnerHeader stdStyle) 
+    (stdInnerHeader stdStyle)
     (stdInnerFooter stdStyle)
     (capitalCase)
     (mixedCase)
@@ -395,22 +395,22 @@ renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
         modName = concatMap unmangle . getModuleNameList $ n
-        
+
         -- TODO these should receive a module map to lookup the correct module
         -- Alternatively, we could rewrite the core language to include qualified names
         typePrefix     = typePrefixMangler st  $ modName
         valuePrefix    = valuePrefixMangler st $ modName
 
         translType    :: Name -> Name
-        translType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName 
-        
+        translType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName
+
         translFun     :: Name -> Name
         translFun     = Name . withPrefix valuePrefix . functionNameMangler st . unmangleName
         translConst   :: Name -> Name
         translConst   = Name . withPrefix valuePrefix . constNameMangler st . unmangleName
         translGlobal  :: Name -> Name
         translGlobal  = Name . withPrefix valuePrefix . globalNameMangler st . unmangleName
-        
+
         translStructField  :: Name -> Name
         translStructField = Name . structFieldMangler st . unmangleName
         translUnionField  :: Name -> Name
@@ -419,7 +419,7 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         translEnumField   = Name . enumFieldMangler st . unmangleName
 
         -- TODO disamb struct enum etc
-        renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (renameType st t)
+        renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (renameType st) t)
         renameDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (renameFunType st t)
         renameDecl st (TagDecl t)         = TagDecl (renameType st t)
         renameDecl st (ConstDecl n v t)   = ConstDecl (translConst n) v (renameType st t)
@@ -433,34 +433,34 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
 
         renameAlias :: CStyle -> Name -> Name
         renameAlias st n = translType n
-        
+
         renameRefType :: CStyle -> RefType -> RefType
         renameRefType st (Pointer t) = Pointer (renameType st t)
         renameRefType st (Array t n) = Array (renameType st t) n
-        
+
         renameFunType :: CStyle -> FunType -> FunType
         renameFunType st (Function as r) = Function (fmap (renameType st) as) (renameType st r)
-        
+
         renameCompType :: CStyle -> CompType -> CompType
         renameCompType st (Enum ns)     = Enum   $ fmap translEnumField ns
         renameCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField n, renameType st t)) ns
         renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, renameType st t)) ns
         renameCompType st (BitField ns) = notSupported "Bit-fields"
-        
+
         -- If the type name is a suffix of the module name, we simplify it to avoid redundancy
         simplifyTypeName :: [String] -> [String] -> [String]
         simplifyTypeName mod typ
             | typ `List.isSuffixOf` mod = []
             | otherwise                 = typ
-        
+
         unmangle :: String -> [String]
         unmangle = Unmangle.unmangle
 
         unmangleName :: Name -> [String]
         unmangleName (Name n)    = unmangle n
         unmangleName (QName m n) = getModuleNameList m ++ unmangle n
-        
-        
+
+
 
 -------------------------------------------------------------------------------------
 -- Top-level declarations
@@ -472,13 +472,24 @@ convertTopLevel st (Module n is ds) = CTranslUnit cds defInfo
         cds = map (CDeclExt . convertDecl st) ds
 
 convertDecl :: CStyle -> Decl -> CDecl
-convertDecl st (TypeDecl n t)      = declType st n t             -- typedef T N;
-convertDecl st (FunctionDecl n t)  = declFun st n t                 -- T n (as);
-convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
-convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
-convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
+convertDecl st (TypeDecl n Nothing)  = declOpaque st n
+convertDecl st (TypeDecl n (Just t)) = declType st n t                -- typedef T N;
+convertDecl st (FunctionDecl n t)    = declFun st n t                 -- T n (as);
+convertDecl st (TagDecl t)           = notSupported "Tag decls"       -- T;
+convertDecl st (ConstDecl n v t)     = notSupported "Constants"       -- T n; or T n = v;
+convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or T n = v;
 
-declType :: CStyle -> Name -> Type -> CDecl             
+-- TODO for now opaques are always structs
+-- TODO use separate mangler for struct name
+declOpaque :: CStyle -> Name -> CDecl
+declOpaque st n = CDecl spec decList defInfo
+    where
+        typ     = CSUType (CStruct CStructTag (Just $ ident ("_" ++ getName n)) Nothing [] defInfo) defInfo
+        spec    = [CStorageSpec (CTypedef defInfo)] ++ [CTypeSpec typ]
+        declr   = CDeclr (Just $ identName n) [] Nothing [] defInfo
+        decList = [topLevelDeclr declr]
+
+declType :: CStyle -> Name -> Type -> CDecl
 declType st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
@@ -486,7 +497,7 @@ declType st n t = CDecl spec decList defInfo
         declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
-declVar :: CStyle -> Name -> Type -> CDecl             
+declVar :: CStyle -> Name -> Type -> CDecl
 declVar st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertType st t
@@ -494,7 +505,7 @@ declVar st n t = CDecl spec decList defInfo
         declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
-declFun :: CStyle -> Name -> FunType -> CDecl             
+declFun :: CStyle -> Name -> FunType -> CDecl
 declFun st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertFunType st t
@@ -526,12 +537,12 @@ declStructMember st n t = CDecl spec decList defInfo
 declBitfieldMember :: CStyle -> Maybe Name -> Type -> Int -> CDecl
 declBitfieldMember = notSupported "Bit-fields"
 
--- | 
+-- |
 -- C types are represented by
--- 
---     1) A sequence of (declaration-specific) type specifiers such as 'unsigned', 'long', 'int' etc 
 --
---     2) A sequence of (variable-specific) qualifiers such as '*', '[]' or function arguments 
+--     1) A sequence of (declaration-specific) type specifiers such as 'unsigned', 'long', 'int' etc
+--
+--     2) A sequence of (variable-specific) qualifiers such as '*', '[]' or function arguments
 --
 convertType :: CStyle -> Type -> ([CTypeSpec], [CDerivedDeclr])
 convertType st (AliasType n) = convertAlias st n
@@ -552,8 +563,8 @@ convertPrimType st t = (prim t, [])
         prim Bool       = return $ CTypeDef (ident "bool") defInfo
         prim Void       = [CVoidType defInfo]
         prim Char       = [CCharType defInfo]
-        prim Short      = [CShortType defInfo] 
-        prim Int        = [CIntType defInfo] 
+        prim Short      = [CShortType defInfo]
+        prim Int        = [CIntType defInfo]
         prim Long       = [CLongType defInfo]
         prim LongLong   = [CLongType defInfo, CLongType defInfo]
         prim SChar      = [CSignedType defInfo, CCharType defInfo]
@@ -567,7 +578,7 @@ convertPrimType st t = (prim t, [])
         prim LongDouble = [CLongType defInfo, CDoubleType defInfo]
         prim Size       = return $ CTypeDef (ident "size_t") defInfo
         prim Ptrdiff    = return $ CTypeDef (ident "ptrdiff_t") defInfo
-        prim Intptr     = return $ CTypeDef (ident "intptr_t") defInfo 
+        prim Intptr     = return $ CTypeDef (ident "intptr_t") defInfo
         prim UIntptr    = return $ CTypeDef (ident "uintptr_t") defInfo
         prim Int8       = return $ CTypeDef (ident "int8_t") defInfo
         prim Int16      = return $ CTypeDef (ident "int16_t") defInfo
@@ -592,27 +603,27 @@ convertRefType st (Array t n) = (typ, [CArrDeclr [] size defInfo] ++ decls)
 
 convertFunType :: CStyle -> FunType -> ([CTypeSpec], [CDerivedDeclr])
 convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] defInfo ] ++ decls)
-    where                                                             
+    where
         (typ, decls) = convertType st r
         args :: [CDecl]
         args    = map (\t -> declParam st Nothing t) as
 
 convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])
 convertCompType st (Enum as) = ([typ], [])
-    where                            
+    where
         typ     = CEnumType enum defInfo
         enum    = CEnum tag (Just names) [] defInfo
         tag     = Nothing
         names   = map (\n -> (identName n, Nothing)) $ NonEmpty.toList as
-        
+
 convertCompType st (Struct as) = ([typ], [])
-    where                              
+    where
         typ     = cStruct tag (Just decls)
         tag     = Nothing
         decls   = map (\(n,t) -> declStructMember st n t) $ NonEmpty.toList as
 
 convertCompType st (Union as) = ([typ], [])
-    where                              
+    where
         typ     = cUnion tag (Just decls)
         tag     = Nothing
         decls   = map (\(n,t) -> declStructMember st n t) $ NonEmpty.toList as

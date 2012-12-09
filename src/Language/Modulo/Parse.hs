@@ -125,9 +125,15 @@ typeDecParser = do
     name <- unameParser
     char '='
     optional lspace
-    typ <- typeParser
+    typ <- typeOpaqueParser
     semi lexer
     return $ TypeDecl name typ
+
+typeOpaqueParser :: Parser (Maybe Type)
+typeOpaqueParser = (opaqueParser >> return Nothing) <|> fmap Just typeParser
+
+opaqueParser :: Parser ()
+opaqueParser = reserved lexer "opaque" >> return ()
 
 tagDecParser :: Parser Decl
 tagDecParser = do
@@ -303,7 +309,7 @@ lexer = makeTokenParser $
         caseSensitive   =  True }
     where
         reservedNames = [
-            "module", "import", "type", "tagname", "enum", "union", "struct", "bitfield",
+            "module", "import", "type", "tagname", "opaque", "enum", "union", "struct", "bitfield",
             "Int", "Void", "Size", "Ptrdiff", "Intptr", "UIntptr",
             "Char", "Short", "Int", "Long", "LongLong",
             "UChar", "UShort", "UInt", "ULong", "ULongLong",

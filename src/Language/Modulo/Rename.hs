@@ -32,7 +32,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 resolve :: [Module] -> Module -> Module
 resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
     where
-        renameDecl (TypeDecl n t)      = TypeDecl n (renameType t)
+        renameDecl (TypeDecl n t)      = TypeDecl n (fmap renameType t)
         renameDecl (FunctionDecl n t)  = FunctionDecl n (renameFunType t)
         renameDecl (TagDecl t)         = TagDecl (renameType t)
         renameDecl (ConstDecl n v t)   = ConstDecl n v (renameType t)

@@ -39,6 +39,7 @@ data ModCStyle
 data ModOpt
     = Help    
     | Version
+    | Package { getPackage :: String }
     | Lang { getLang :: ModLang }
     | Path { getPath :: [ModulePath] }
     deriving (Eq, Show)
@@ -57,9 +58,14 @@ readModLang (Just s) = Lang $ case s of
     "haskell"    -> Haskell
     "Haskell"    -> Haskell
     _            -> C
+
 readModPath :: Maybe String -> ModOpt
-readModPath s = Path $ maybeToList s
+readModPath = Path . maybeToList
 -- TODO accept more than one, separate by commas
+
+readPackage :: Maybe String -> ModOpt
+readPackage = Package . maybe "user" id
+
 
 version = "modulo-0.5"
 header  = "Usage: modulo [options]\n" ++
@@ -73,7 +79,8 @@ options = [
     (Option ['h'] ["help"]          (NoArg Help)         "Print help and exit"),
     (Option ['v'] ["version"]       (NoArg Version)      "Print version and exit"),
     (Option ['L'] ["language"]      (OptArg readModLang  "LANG") "Output language"),
-    (Option ['M'] ["module-path"]   (OptArg readModPath  "PATH") "Module paths")
+    (Option ['M'] ["module-path"]   (OptArg readModPath  "PATH") "Module paths"),
+    (Option []    ["lisp-package"]  (OptArg readPackage  "STRING") "Lisp package")
   ]                                          
     
 main = do
@@ -96,6 +103,10 @@ findPath opts = fmap getPath $ find isPath opts
     where                                   
         isPath (Path _) = True
         isPath _        = False
+findPackage opts = fmap getPackage $ find isPackage opts
+    where                                   
+        isPackage (Package _) = True
+        isPackage _           = False
         
 -- |
 -- Run as a filter from stdin to stdout.
@@ -105,8 +116,9 @@ runFilter opts = compileFile opts stdin stdout
 
 compileFile :: [ModOpt] -> Handle -> Handle -> IO ()
 compileFile opts input output = do
-    let lang  = fromMaybe C (findLang opts)
-    let paths = fromMaybe [] (findPath opts)
+    let lang        = fromMaybe C (findLang opts)
+    let paths       = fromMaybe [] (findPath opts)
+    let package     = fromMaybe "user" (findPackage opts)
     
     s <- hGetContents input
     let m  = unsafeParse s
