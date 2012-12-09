@@ -131,7 +131,7 @@ compileFile opts input output = do
         unsafeRename :: [ModulePath] -> Module -> IO Module
         unsafeRename paths m = do
             deps <- loadDependencies (withStdModulePaths paths) m
-            return $ resolve deps m
+            return $ rename deps m
             
         unsafeParse :: String -> Module
         unsafeParse s = case (parse s) of

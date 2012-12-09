@@ -14,7 +14,7 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Rename (
-        resolve
+        rename
   ) where
 
 import Control.Exception
@@ -31,8 +31,8 @@ import qualified Data.List.NonEmpty as NonEmpty
 --
 -- This applies to references, not to declarations.
 --
-resolve :: [Module] -> Module -> Module
-resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
+rename :: [Module] -> Module -> Module
+rename deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
     where
         renameDecl (TypeDecl n t)      = TypeDecl (qualify mod n) (fmap renameType t)
         renameDecl (FunctionDecl n t)  = FunctionDecl (qualify mod n) (renameFunType t)
@@ -41,7 +41,7 @@ resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds)
         renameDecl (GlobalDecl n v t)  = GlobalDecl (qualify mod n) v (renameType t)
 
         renameType (PrimType t)  = PrimType t
-        renameType (AliasType n) = AliasType $ rename (mod : deps) n
+        renameType (AliasType n) = AliasType $ resolveName (mod : deps) n
         renameType (RefType t)   = RefType   $ renameRefType t
         renameType (FunType t)   = FunType   $ renameFunType t
         renameType (CompType t)  = CompType  $ renameCompType t
@@ -62,20 +62,20 @@ resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds)
 qualify :: Module -> Name -> Name
 qualify m (Name n) = QName (modName m) n
 
-rename :: [Module] -> Name -> Name
-rename ms (QName m n) = QName m n
-rename ms n@(Name n') = case resolveName ms n of
+resolveName :: [Module] -> Name -> Name
+resolveName ms (QName m n) = QName m n
+resolveName ms n@(Name n') = case findName ms n of
     Nothing -> error $ "Could not find: " ++ show n'
     Just m  -> QName m n'
         
 -- | 
 -- Find the first module in which the given unqualified name is declared
 --
-resolveName :: [Module] -> Name -> Maybe ModuleName
-resolveName []     n = Nothing
-resolveName (m:ms) n
+findName :: [Module] -> Name -> Maybe ModuleName
+findName []     n = Nothing
+findName (m:ms) n
     | n `elem` mNs   = Just $ modName m
-    | otherwise      = resolveName ms n
+    | otherwise      = findName ms n
     where
         mNs = catMaybes . map getDeclName . modDecls $ m 
 
