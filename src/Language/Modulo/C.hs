@@ -68,8 +68,8 @@ data CStyle =
     CStyle {
         -- Guards
         guardStyle          :: GuardStyle,           -- ^ How to write guards
-        importStyle         :: ImportStyle,          -- ^ How to write import declarations
-        importDirective     :: String,               -- ^ Import directive, usually @include@.
+        includeStyle         :: ImportStyle,          -- ^ How to write import declarations
+        includeDirective     :: String,               -- ^ Import directive, usually @include@.
         guardMangler        :: [String] -> String,   -- ^ Mangler for names of header guards
         innerHeader         :: [String] -> String,   -- ^ Inner header mangler
         innerFooter         :: [String] -> String,   -- ^ Inner footer mangler
@@ -99,7 +99,7 @@ data CStyle =
 
 -- | Default instance using 'stdStyle'.
 instance Default CStyle where
-    def = gtkStyle
+    def = stdStyle
 -- | Left-biased Semigroup instance.
 instance Semigroup CStyle where
     a <> b = a
@@ -130,32 +130,35 @@ stdInnerFooter _ ns = (concat $ List.zipWith (++) c1 c2) ++ end
 -- |
 -- Style used in the C standard library.
 --
--- * Types:     @ pfoobar_t @
+-- * Types:     @ foo_bar_type_t @
 --
--- * Opaques:   @ _pfoobar_t @
+-- * Functions: @ foo_bar_func @
 --
--- * Functions: @ p_foo_bar @
---
--- * Constants: @ P_FOO_BAR @
+-- * Constants: @ FOO_BAR_VAL @
 --
 -- * Fields:    @ foo_bar @
 stdStyle :: CStyle
 stdStyle = CStyle
-    Ifndef SystemPath "include"
-    (withPrefix "_" . concatSep "_" . fmap toUpperString)
-    (stdInnerHeader stdStyle)
-    (stdInnerFooter stdStyle)
-    (withSuffix "_" . concatSep "_" . fmap toLowerString)
-    (withSuffix "_" . concatSep "_" . fmap toLowerString)
-
-    (concatSep "_" . withSuffix ["t"] . fmap toLowerString)
-    (concatSep "_" . fmap toLowerString)
-    (concatSep "_" . fmap toLowerString)
-    (concatSep "_" . fmap toLowerString)
-
-    (concatSep "_" . fmap toLowerString)
-    (concatSep "_" . fmap toLowerString)
-    (concatSep "_" . fmap toLowerString)
+    {
+    guardStyle          = Ifndef,
+    includeStyle        = SystemPath, 
+    includeDirective    = "include",
+    guardMangler        = (withPrefix "_" . concatSep "_" . fmap toUpperString),
+    innerHeader         = (stdInnerHeader stdStyle),
+    innerFooter         = (stdInnerFooter stdStyle),
+                        
+    typePrefixMangler   = (withSuffix "_" . concatSep "_" . fmap toLowerString),
+    valuePrefixMangler  = (withSuffix "_" . concatSep "_" . fmap toLowerString),
+                        
+    typeMangler         = (concatSep "_" . withSuffix ["t"] . fmap toLowerString),
+    structFieldMangler  = (concatSep "_" . fmap toLowerString),
+    unionFieldMangler   = (concatSep "_" . fmap toLowerString),
+    enumFieldMangler    = (concatSep "_" . fmap toLowerString),
+                        
+    constMangler        = (concatSep "_" . fmap toLowerString),
+    globalMangler       = (concatSep "_" . fmap toLowerString),
+    funcMangler         = (concatSep "_" . fmap toLowerString)
+    }
 
 -- |
 -- Style used in Cairo.
@@ -335,7 +338,7 @@ convertHeader st mod = mempty
         name = getModuleNameList . modName $ mod
         guard = guardMangler st name
         imports = concatSep "\n"
-            . map (withPrefix ("#" ++ importDirective st ++ " <") . withSuffix ".h>" . concatSep "/" . getModuleNameList)
+            . map (withPrefix ("#" ++ includeDirective st ++ " <") . withSuffix ".h>" . concatSep "/" . getModuleNameList)
             . modImports
             $ mod
 
@@ -377,24 +380,27 @@ renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
         translType    :: Name -> Name
-        translType    = Name . typeMangler st . unmangleName
+        translType    = mangleName (typePrefixMangler st) (typeMangler st)
 
         translFun     :: Name -> Name
-        translFun     = Name . funcMangler st . unmangleName
         translConst   :: Name -> Name
-        translConst   = Name . constMangler st . unmangleName
         translGlobal  :: Name -> Name
-        translGlobal  = Name . globalMangler st . unmangleName
+        translFun     = mangleName (valuePrefixMangler st) (funcMangler st)
+        translConst   = mangleName (valuePrefixMangler st) (constMangler st)
+        translGlobal  = mangleName (valuePrefixMangler st) (globalMangler st)
+
 
         translStructField  :: Name -> Name
-        translStructField = Name . structFieldMangler st . unmangleName
         translUnionField  :: Name -> Name
-        translUnionField  = Name . unionFieldMangler st . unmangleName
         translEnumField  :: Name -> Name
-        translEnumField   = Name . enumFieldMangler st . unmangleName
+        translStructField = mangleName (valuePrefixMangler st) (structFieldMangler st)
+        translUnionField  = mangleName (valuePrefixMangler st) (unionFieldMangler st)
+        translEnumField   = mangleName (valuePrefixMangler st) (enumFieldMangler st)
 
+        mangleName :: ([String] -> String) -> ([String] -> String) -> Name -> Name
+        mangleName p q (Name n)    = Name $ q (unmangle n)
+        mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList $ m) ++ q (unmangle n)
 
-        -- TODO disamb struct enum etc
         renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (renameType st) t)
         renameDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (renameFunType st t)
         renameDecl st (TagDecl t)         = TagDecl (renameType st t)
@@ -425,10 +431,6 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
 
         unmangle :: String -> [String]
         unmangle = Unmangle.unmangle
-
-        unmangleName :: Name -> [String]
-        unmangleName (Name n)    = unmangle n
-        unmangleName (QName m n) = concatMap unmangle (getModuleNameList m) ++ unmangle n
 
 
 
