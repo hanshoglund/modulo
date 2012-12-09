@@ -58,10 +58,6 @@ unsafeParseFile path = do
         Left e -> error . show $ e
         Right m -> return m
 
--- unsafeParseFile2 path = do
---     m <- unsafeParseFile path
---     putStrLn . breakList 80 "\n" . show $ m
-
 
 -------------------------------------------------------------------------------------
 -- Parser
@@ -72,12 +68,10 @@ modParser = do
     optional lspace
     reserved lexer "module"
     name <- modNameParser
-    char '{'
-    optional lspace
+    llex $ char '{'
     imps <- many impParser
     decls <- many declParser
-    char '}'
-    optional lspace
+    llex $ char '}'
     return $ Module name imps decls
 
 modNameParser :: Parser ModuleName
@@ -104,8 +98,7 @@ typeDeclParser :: Parser Decl
 typeDeclParser = do
     reserved lexer "type"
     name <- unameParser
-    char '='
-    optional lspace
+    llex $ char '='
     typ <- typeOpaqueParser
     semi lexer
     return $ TypeDecl name typ
@@ -141,17 +134,27 @@ opaqueParser = reserved lexer "opaque" >> return ()
 typeParser :: Parser Type
 typeParser = do
     typ <- typeStartParser
-    -- Check for postfix *
-    n <- occs (char '*')
-    return $ times n (RefType . Pointer) typ
+    mods <- typeEndParser
+    return $ mods typ
+
+typeEndParser :: Parser (Type -> Type)
+typeEndParser = foldr (flip (.)) id <$> quals
     where
-        times 0 f = id
-        times n f = f . times (n-1) f
+        quals = many (ptr <|> func)
+        ptr  = (llex $ char '*') >> return (RefType . Pointer) 
+        func = do
+            llex $ string "->"
+            typ <- typeParser
+            return $ funRes typ
+            
+funRes :: Type -> Type -> Type
+funRes r a = FunType $ Function [a] r
+            
 
 typeStartParser :: Parser Type
 typeStartParser = mzero
+    <|> parenTypeParser
     <|> arrayTypeParser
-    <|> funTypeParser
     <|> enumTypeParser
     <|> unionTypeParser
     <|> structTypeParser
@@ -159,64 +162,58 @@ typeStartParser = mzero
     <|> primTypeParser
     <|> aliasTypeParser
 
+parenTypeParser :: Parser Type
+parenTypeParser = do
+    llex $ char '('
+    typ <- typeParser
+    llex $ char ')'
+    return typ
+
+-- funTypeParser :: Parser Type
+-- funTypeParser = do
+--     char '('
+--     optional lspace
+--     args <- typeParser `sepBy` (spaceAround $ char ',')
+--     optional lspace
+--     char ')'
+--     optional lspace
+--     string "->"
+--     optional lspace
+--     res <- typeParser
+--     return $ FunType $ Function args res
 
 arrayTypeParser :: Parser Type
 arrayTypeParser = do
-    char '['
-    optional lspace
+    llex $ char '['
     typ <- typeParser
-    optional lspace
-    char 'x'
-    optional lspace
+    llex $ char 'x'
     n <- lnat
-    char ']'
-    optional lspace
+    llex $ char ']'
     return $ RefType $ Array typ (fromInteger n)
-
-funTypeParser :: Parser Type
-funTypeParser = do
-    char '('
-    optional lspace
-    args <- typeParser `sepBy` (spaceAround $ char ',')
-    optional lspace
-    char ')'
-    optional lspace
-    string "->"
-    optional lspace
-    res <- typeParser
-    return $ FunType $ Function args res
-
 
 enumTypeParser :: Parser Type
 enumTypeParser = do
     reserved lexer "enum"
-    char '{'
-    optional lspace
-    (n:ns) <- unameParser `sepBy` (spaceAround $ char ',')
-    optional lspace
-    char '}'
-    optional lspace
+    llex $ char '{'
+    (n:ns) <- unameParser `sepBy` (llex $ char ',')
+    llex $ char '}'
     return $ CompType $ Enum (n :| ns)
-
-unionTypeParser :: Parser Type
-unionTypeParser = do
-    reserved lexer "union"
-    char '{'
-    optional lspace
-    (n:ns) <- unameTypeParser `sepBy` (spaceAround $ char ',')
-    optional lspace
-    char '}'
-    return $ CompType $ Union (n :| ns)
 
 structTypeParser :: Parser Type
 structTypeParser = do
     reserved lexer "struct"
-    char '{'
-    optional lspace
-    (n:ns) <- unameTypeParser `sepBy1` (spaceAround $ char ',')
-    optional lspace
-    char '}'
+    llex $ char '{'
+    (n:ns) <- unameTypeParser `sepBy1` (llex $ char ',')
+    llex $ char '}'
     return $ CompType $ Struct (n :| ns)
+
+unionTypeParser :: Parser Type
+unionTypeParser = do
+    reserved lexer "union"
+    llex $ char '{'
+    (n:ns) <- unameTypeParser `sepBy1` (llex $ char ',')
+    llex $ char '}'
+    return $ CompType $ Union (n :| ns)
 
 bitfieldTypeParser :: Parser Type
 bitfieldTypeParser = do
@@ -279,36 +276,39 @@ unameParser = Name <$> lname
 unameTypeParser :: Parser (Name, Type)
 unameTypeParser = do
     name <- unameParser
-    char ':'
-    optional lspace
+    llex $ char ':'
     typ <- typeParser
     return $ (name, typ)
                              
 
 -- Extra combinators, not exported
 occs p        = length <$> many p
-spaceBefore p = optional lspace >> p
-spaceAfter p  = p >> optional lspace
-spaceAround p = spaceBefore (spaceAfter p)
+follow p q    = do
+    a <- p
+    b <- q
+    return (a, b)
+-- spaceBefore p = optional lspace >> p
+-- spaceAfter p  = p >> optional lspace
+-- spaceAround p = spaceBefore (spaceAfter p)
 
 -------------------------------------------------------------------------------------
 -- Lexer
 -------------------------------------------------------------------------------------
 
 lexer :: TokenParser ()
-lexer = makeTokenParser $
-    LanguageDef { 
-        commentStart    =  "/*",
-        commentEnd      =  "*/",
-        commentLine     =  "//",
-        nestedComments  =  True,
-        identStart      =  (letter <|> char '_'),
-        identLetter     =  (letter <|> char '_'),
-        opStart         =  mzero,
-        opLetter        =  mzero,
-        reservedNames   =  reservedNames,
-        reservedOpNames =  mzero,
-        caseSensitive   =  True }
+lexer = makeTokenParser $ LanguageDef { 
+    commentStart    =  "/*",
+    commentEnd      =  "*/",
+    commentLine     =  "//",
+    nestedComments  =  True,
+    identStart      =  (letter <|> char '_'),
+    identLetter     =  (alphaNum <|> char '_'),
+    opStart         =  mzero,
+    opLetter        =  mzero,
+    reservedNames   =  reservedNames,
+    reservedOpNames =  mzero,
+    caseSensitive   =  True 
+    }
     where
         reservedNames = [
             "module", "import", "type", "tagname", "opaque", "enum", "union", "struct", "bitfield",
@@ -319,6 +319,7 @@ lexer = makeTokenParser $
             "Int8", "Int16", "Int32", "Int64", "UInt8", "UInt16", "UInt32", "UInt64" ]
 
 -- Convenient synonyms, not exported
+llex   = lexeme lexer
 lnat   = natural lexer
 lname  = identifier lexer
 lres   = reserved lexer
