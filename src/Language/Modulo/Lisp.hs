@@ -103,7 +103,18 @@ convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
 convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
 convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
 
--- Note that this means that functions must replace pointers to opaques
+--
+-- TODO To be more type-safe, we want to generate something like this:
+-- 
+-- (defclass set () ((ptr :pointer)))
+-- (define-foreign-type set-type () 
+--   () 
+--   (:actual-type :pointer)
+--   (:parse-simple set))
+-- (defmethod translate-to-foreign (x (type set-type))
+--   (slot-value x 'pointer))
+--
+
 declOpaque :: LispStyle -> Name -> Lisp             
 declOpaque st n = List [symbol "defctype", symbolName n, keyword "pointer"]
 
@@ -116,15 +127,6 @@ declFun st n (Function as r) = List [symbol "defcfun", stringName n, ret, args]
         ret  = convertType st r
         args = List $ map (convertType st) as
 
-
-
-
-
--- TODO
--- CFFI can only deal with flat structs/unions
--- Can we unflatten nested struct/union types?
--- Or should we use a codegen monad to gather defcXX declarations?
--- Or just fail and let the user rewrite manually
     
 convertType :: LispStyle -> Type -> Lisp
 convertType st (AliasType n) = convertAlias st n
@@ -160,16 +162,17 @@ convertPrimType st UInt8      = keyword "uint8"
 convertPrimType st UInt16     = keyword "uint16" 
 convertPrimType st UInt32     = keyword "uint32" 
 convertPrimType st UInt64     = keyword "uint64"
--- These are declared in cffi-sys, hopefully visible to cffi
 convertPrimType st Size       = keyword "size"
 convertPrimType st Ptrdiff    = keyword "ptrdiff"
 convertPrimType st Intptr     = keyword "pointer" 
-convertPrimType st UIntptr    = keyword "size"   -- ?
+convertPrimType st UIntptr    = notSupported "Uintptr with Lisp"
 convertPrimType st SChar      = notSupported "Signed chars with Lisp"
+-- Note: Size etc are declared in cffi-sys, hopefully visible to cffi
+
 
 convertRefType :: LispStyle -> RefType -> Lisp
 convertRefType st (Pointer t) = List [keyword "pointer", convertType st t]
-convertRefType st (Array t n) = convertType st voidPtr
+convertRefType st (Array t n) = notSupported "Array types with Lisp"
 -- TODO
 
 convertFunType :: LispStyle -> FunType -> Lisp
