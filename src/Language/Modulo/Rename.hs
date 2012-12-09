@@ -18,11 +18,15 @@ module Language.Modulo.Rename (
   ) where
 
 import Control.Exception
+import Data.List (isSuffixOf)
 import Data.Maybe (catMaybes)
+import Data.List.NonEmpty ( NonEmpty(..) )
+import qualified Data.List as List
 
 import Language.Modulo
 import Language.Modulo.Parse
 import Language.Modulo.Util
+import Language.Modulo.Util.Unmangle (unmangle)
 
 import qualified Data.List.NonEmpty as NonEmpty
 
@@ -38,14 +42,14 @@ import qualified Data.List.NonEmpty as NonEmpty
 rename :: [Module] -> Module -> Module
 rename deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
     where
-        renameDecl (TypeDecl n t)      = TypeDecl (qualify mod n) (fmap renameType t)
-        renameDecl (FunctionDecl n t)  = FunctionDecl (qualify mod n) (renameFunType t)
+        renameDecl (TypeDecl n t)      = TypeDecl (simplify $ qualify mod n) (fmap renameType t)
+        renameDecl (FunctionDecl n t)  = FunctionDecl (simplify $ qualify mod n) (renameFunType t)
         renameDecl (TagDecl t)         = TagDecl (renameType t)
-        renameDecl (ConstDecl n v t)   = ConstDecl (qualify mod n) v (renameType t)
-        renameDecl (GlobalDecl n v t)  = GlobalDecl (qualify mod n) v (renameType t)
+        renameDecl (ConstDecl n v t)   = ConstDecl (simplify $ qualify mod n) v (renameType t)
+        renameDecl (GlobalDecl n v t)  = GlobalDecl (simplify $ qualify mod n) v (renameType t)
 
         renameType (PrimType t)  = PrimType t
-        renameType (AliasType n) = AliasType $ resolveName (mod : deps) n
+        renameType (AliasType n) = AliasType $ simplify $ resolveName (mod : deps) n
         renameType (RefType t)   = RefType   $ renameRefType t
         renameType (FunType t)   = FunType   $ renameFunType t
         renameType (CompType t)  = CompType  $ renameCompType t
@@ -85,7 +89,17 @@ findName (m:ms) n
         mNs = catMaybes . map getDeclName . modDecls $ m 
 
 
+-- If the given name is a suffix of the module name, simplify
+simplify :: Name -> Name
+simplify (Name n)    = Name n
+simplify (QName m n) = QName (simp m n) n
+    where
+        simp mn@(ModuleName (m :| ms)) n
+            | n `lastOf` ms = ModuleName (m :| drop (length n) ms)
+            | otherwise     = mn
 
+        x `lastOf` [] = False
+        x `lastOf` xs = x == last xs
 
 
 
