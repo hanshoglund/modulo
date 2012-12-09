@@ -480,8 +480,9 @@ declOpaque st n = CDecl spec decList defInfo
     where
         typ     = CSUType (CStruct CStructTag (Just $ ident ("_" ++ getName n)) Nothing [] defInfo) defInfo
         spec    = [CStorageSpec (CTypedef defInfo)] ++ [CTypeSpec typ]
-        declr   = CDeclr (Just $ identName n) [] Nothing [] defInfo
+        declr   = CDeclr (Just $ identName n) [CPtrDeclr [] defInfo] Nothing [] defInfo
         decList = [topLevelDeclr declr]
+        
 
 declType :: CStyle -> Name -> Type -> CDecl
 declType st n t = CDecl spec decList defInfo
