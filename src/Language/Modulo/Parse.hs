@@ -117,7 +117,7 @@ funDeclParser = do
     (name, typ) <- unameTypeParser
     semi lexer
     case typ of
-        (FunType func) -> return $ FunctionDecl name func 
+        (FunType func) -> return $ FunctionDecl name func
         _              -> unexpected "Expected function type"
 
 
@@ -137,54 +137,46 @@ opaqueParser = reserved lexer "opaque" >> return ()
 
 typeParser :: Parser Type
 typeParser = do
-    typ <- typeStartParser
+    [typ] <- typeStartParser
     mods <- typeEndParser
     return $ mods typ
 
+typeStartParser :: Parser [Type]
+typeStartParser = mzero
+    <|> parenTypeParser
+    <|> single <$> arrayTypeParser
+    <|> single <$> enumTypeParser
+    <|> single <$> unionTypeParser
+    <|> single <$> structTypeParser
+    <|> single <$> bitfieldTypeParser
+    <|> single <$> primTypeParser
+    <|> single <$> aliasTypeParser
+
 typeEndParser :: Parser (Type -> Type)
-typeEndParser = foldr (flip (.)) id <$> quals
+typeEndParser = foldr (flip (.)) id <$> many (ptr <|> func)
     where
-        quals = many (ptr <|> func)
-        ptr  = (llex $ char '*') >> return (RefType . Pointer) 
+        ptr = do
+            llex $ char '*'
+            return mkPtr
         func = do
             llex $ string "->"
             typ <- typeParser
-            return $ funRes typ
-            
-funRes :: Type -> Type -> Type
-funRes r a = FunType $ Function [a] r
-            
+            return $ mkFun typ
+    
+        mkPtr :: Type -> Type
+        mkPtr = RefType . Pointer
 
-typeStartParser :: Parser Type
-typeStartParser = mzero
-    <|> parenTypeParser
-    <|> arrayTypeParser
-    <|> enumTypeParser
-    <|> unionTypeParser
-    <|> structTypeParser
-    <|> bitfieldTypeParser
-    <|> primTypeParser
-    <|> aliasTypeParser
+        mkFun :: Type -> Type -> Type
+        mkFun r a = FunType $ Function [a] r
 
-parenTypeParser :: Parser Type
+
+-- TODO support named arguments
+parenTypeParser :: Parser [Type]
 parenTypeParser = do
     llex $ char '('
-    typ <- typeParser
+    typ <-  typeParser `sepBy` (llex $ char ',')
     llex $ char ')'
     return typ
-
--- funTypeParser :: Parser Type
--- funTypeParser = do
---     char '('
---     optional lspace
---     args <- typeParser `sepBy` (spaceAround $ char ',')
---     optional lspace
---     char ')'
---     optional lspace
---     string "->"
---     optional lspace
---     res <- typeParser
---     return $ FunType $ Function args res
 
 arrayTypeParser :: Parser Type
 arrayTypeParser = do
@@ -283,7 +275,7 @@ unameTypeParser = do
     llex $ char ':'
     typ <- typeParser
     return $ (name, typ)
-                             
+
 
 -- Extra combinators, not exported
 occs p        = length <$> many p
@@ -300,7 +292,7 @@ follow p q    = do
 -------------------------------------------------------------------------------------
 
 lexer :: TokenParser ()
-lexer = makeTokenParser $ LanguageDef { 
+lexer = makeTokenParser $ LanguageDef {
     commentStart    =  "/*",
     commentEnd      =  "*/",
     commentLine     =  "//",
@@ -311,7 +303,7 @@ lexer = makeTokenParser $ LanguageDef {
     opLetter        =  mzero,
     reservedNames   =  reservedNames,
     reservedOpNames =  mzero,
-    caseSensitive   =  True 
+    caseSensitive   =  True
     }
     where
         reservedNames = [
@@ -330,5 +322,6 @@ lres   = reserved lexer
 lspace = whiteSpace lexer
 
 
+single x = [x]
 notSupported x = error $ "Not supported yet: " ++ x
 
