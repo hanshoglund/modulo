@@ -85,9 +85,6 @@ modNameParser = do
     (x:xs) <- identifier lexer `sepBy1` (string ".")
     return . ModuleName $ x :| xs
 
-unameParser :: Parser Name
-unameParser = Name <$> lname
-
 nameParser :: Parser Name
 nameParser = do
     r <- identifier lexer `sepBy1` (string ".")
@@ -95,13 +92,8 @@ nameParser = do
         [x]    -> Name x
         (x:xs) -> QName (ModuleName $ x :| init xs) (last xs)
 
-
-impParser :: Parser ModuleName
-impParser = do
-    reserved lexer "import"
-    x <- modNameParser
-    semi lexer
-    return x
+unameParser :: Parser Name
+unameParser = Name <$> lname
 
 unameTypeParser :: Parser (Name, Type)
 unameTypeParser = do
@@ -111,16 +103,23 @@ unameTypeParser = do
     typ <- typeParser
     return $ (name, typ)
 
+impParser :: Parser ModuleName
+impParser = do
+    reserved lexer "import"
+    x <- modNameParser
+    semi lexer
+    return x
+
 declParser :: Parser Decl
 declParser = mzero
-    <|> typeDecParser
-    <|> tagDecParser
-    <|> funDecParser
-    -- <|> constDecParser
-    -- <|> globalDecParser
+    <|> typeDeclParser
+    <|> tagDeclParser
+    <|> funDeclParser
+    -- <|> constDeclParser
+    -- <|> globalDeclParser
 
-typeDecParser :: Parser Decl
-typeDecParser = do
+typeDeclParser :: Parser Decl
+typeDeclParser = do
     reserved lexer "type"
     name <- unameParser
     char '='
@@ -129,32 +128,33 @@ typeDecParser = do
     semi lexer
     return $ TypeDecl name typ
 
-typeOpaqueParser :: Parser (Maybe Type)
-typeOpaqueParser = (opaqueParser >> return Nothing) <|> fmap Just typeParser
-
-opaqueParser :: Parser ()
-opaqueParser = reserved lexer "opaque" >> return ()
-
-tagDecParser :: Parser Decl
-tagDecParser = do
+tagDeclParser :: Parser Decl
+tagDeclParser = do
     reserved lexer "tagname"
     typ <- typeParser
     semi lexer
     return $ TagDecl typ
 
 -- TODO handle non-function types
-funDecParser :: Parser Decl
-funDecParser = do
+funDeclParser :: Parser Decl
+funDeclParser = do
     (name, FunType typ) <- unameTypeParser
     semi lexer
     return $ FunctionDecl name typ
 
-constDecParser :: Parser Decl
-constDecParser = error "Can not parse constants yet"
+constDeclParser :: Parser Decl
+constDeclParser = error "Can not parse constants yet"
 
-globalDecParser :: Parser Decl
-globalDecParser = error "Can not parse globals yet"
+globalDeclParser :: Parser Decl
+globalDeclParser = error "Can not parse globals yet"
 
+-------------------------------------------------------------------------------------
+
+typeOpaqueParser :: Parser (Maybe Type)
+typeOpaqueParser = (opaqueParser >> return Nothing) <|> fmap Just typeParser
+
+opaqueParser :: Parser ()
+opaqueParser = reserved lexer "opaque" >> return ()
 
 typeParser :: Parser Type
 typeParser = do
@@ -241,11 +241,6 @@ bitfieldTypeParser = do
     reserved lexer "bitfield"
     error "Can not parse bitfields yet"
 
-aliasTypeParser :: Parser Type
-aliasTypeParser = do
-    name <- nameParser
-    return $ AliasType name
-
 primTypeParser :: Parser Type
 primTypeParser = mzero
     <|> "Int8"          ==> Int8
@@ -281,6 +276,11 @@ primTypeParser = mzero
     <|> "LongDouble"    ==> LongDouble
     where
         s ==> t = lres s >> return (PrimType t)
+
+aliasTypeParser :: Parser Type
+aliasTypeParser = do
+    name <- nameParser
+    return $ AliasType name
 
 
 -- Extra combinators, not exported
