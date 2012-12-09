@@ -394,22 +394,15 @@ convertFooter st mod = mempty
 renameModule :: CStyle -> Module -> Module
 renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
     where
-        modName = concatMap unmangle . getModuleNameList $ n
-
-        -- TODO these should receive a module map to lookup the correct module
-        -- Alternatively, we could rewrite the core language to include qualified names
-        typePrefix     = typePrefixMangler st  $ modName
-        valuePrefix    = valuePrefixMangler st $ modName
-
         translType    :: Name -> Name
-        translType    = Name . withPrefix typePrefix  . implStructNameMangler st . simplifyTypeName modName . unmangleName
+        translType    = Name . implStructNameMangler st . unmangleName
 
         translFun     :: Name -> Name
-        translFun     = Name . withPrefix valuePrefix . functionNameMangler st . unmangleName
+        translFun     = Name . functionNameMangler st . unmangleName
         translConst   :: Name -> Name
-        translConst   = Name . withPrefix valuePrefix . constNameMangler st . unmangleName
+        translConst   = Name . constNameMangler st . unmangleName
         translGlobal  :: Name -> Name
-        translGlobal  = Name . withPrefix valuePrefix . globalNameMangler st . unmangleName
+        translGlobal  = Name . globalNameMangler st . unmangleName
 
         translStructField  :: Name -> Name
         translStructField = Name . structFieldMangler st . unmangleName
@@ -417,6 +410,7 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         translUnionField  = Name . unionFieldMangler st . unmangleName
         translEnumField  :: Name -> Name
         translEnumField   = Name . enumFieldMangler st . unmangleName
+
 
         -- TODO disamb struct enum etc
         renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (renameType st) t)
@@ -458,7 +452,7 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
 
         unmangleName :: Name -> [String]
         unmangleName (Name n)    = unmangle n
-        unmangleName (QName m n) = getModuleNameList m ++ unmangle n
+        unmangleName (QName m n) = concatMap unmangle (getModuleNameList m) ++ unmangle n
 
 
 

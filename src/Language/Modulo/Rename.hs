@@ -34,11 +34,11 @@ import qualified Data.List.NonEmpty as NonEmpty
 resolve :: [Module] -> Module -> Module
 resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
     where
-        renameDecl (TypeDecl n t)      = TypeDecl n (fmap renameType t)
-        renameDecl (FunctionDecl n t)  = FunctionDecl n (renameFunType t)
+        renameDecl (TypeDecl n t)      = TypeDecl (qualify mod n) (fmap renameType t)
+        renameDecl (FunctionDecl n t)  = FunctionDecl (qualify mod n) (renameFunType t)
         renameDecl (TagDecl t)         = TagDecl (renameType t)
-        renameDecl (ConstDecl n v t)   = ConstDecl n v (renameType t)
-        renameDecl (GlobalDecl n v t)  = GlobalDecl n v (renameType t)
+        renameDecl (ConstDecl n v t)   = ConstDecl (qualify mod n) v (renameType t)
+        renameDecl (GlobalDecl n v t)  = GlobalDecl (qualify mod n) v (renameType t)
 
         renameType (PrimType t)  = PrimType t
         renameType (AliasType n) = AliasType $ rename (mod : deps) n
@@ -48,7 +48,7 @@ resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds)
 
         renameRefType :: RefType -> RefType
         renameRefType (Pointer t) = Pointer (renameType t)
-        renameRefType (Array t n) = Array (renameType t) n
+        renameRefType (Array t j) = Array (renameType t) j
         
         renameFunType :: FunType -> FunType
         renameFunType (Function as r) = Function (fmap renameType as) (renameType r)
@@ -58,6 +58,9 @@ resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds)
         renameCompType (Struct ns)   = Struct $ fmap (\(n,t) -> (n, renameType t)) ns
         renameCompType (Union ns)    = Union  $ fmap (\(n,t) -> (n, renameType t)) ns
         renameCompType (BitField ns) = notSupported "Bit-fields"
+
+qualify :: Module -> Name -> Name
+qualify m (Name n) = QName (modName m) n
 
 rename :: [Module] -> Name -> Name
 rename ms (QName m n) = QName m n
