@@ -29,6 +29,8 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- |
 -- Rewrite all unqualified names as qualified names.
 --
+-- This applies to references, not to declarations.
+--
 resolve :: [Module] -> Module -> Module
 resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
     where
@@ -60,10 +62,12 @@ resolve deps mod@(Module n is ds) = Module n is (map renameDecl ds)
 rename :: [Module] -> Name -> Name
 rename ms (QName m n) = QName m n
 rename ms n@(Name n') = case resolveName ms n of
-    Nothing -> Name n'
+    Nothing -> error $ "Could not find: " ++ show n'
     Just m  -> QName m n'
         
--- | Find the first module in which the given unqualified name is declared
+-- | 
+-- Find the first module in which the given unqualified name is declared
+--
 resolveName :: [Module] -> Name -> Maybe ModuleName
 resolveName []     n = Nothing
 resolveName (m:ms) n
