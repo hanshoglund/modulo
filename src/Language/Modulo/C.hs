@@ -337,9 +337,12 @@ convertHeader st mod = mempty
     where
         name = getModuleNameList . modName $ mod
         guard = guardMangler st name
-        mangleImport = concatSep "/" . map toLowerString
+        mangleImport = concatSep "/" . map toLowerString . map (concatSep "_") . map Unmangle.unmangle
         imports = concatSep "\n"
-            . map (withPrefix ("#" ++ includeDirective st ++ " <") . withSuffix ".h>" . mangleImport . getModuleNameList)
+            . map (withPrefix ("#" ++ includeDirective st ++ " <") 
+                . withSuffix ".h>" 
+                . mangleImport 
+                . getModuleNameList)
             . map fst
             . modImports
             $ mod
