@@ -114,9 +114,11 @@ stdInnerHeader _ ns = concat (post "    @{\n" cs) ++ end
     where
         c1 = ["/** "] ++ repeat "    "
         c2 = repeat "@defgroup "
-        c3 = ns
-        c4 = repeat "\n"
-        cs = List.zipWith4 (\a b c d -> a ++ b ++ c ++ d) c1 c2 c3 c4
+        c3 = map concat . drop 1 . List.inits $ ns
+        c4 = repeat " "
+        c5 = ns
+        c6 = repeat "\n"
+        cs = List.zipWith6 (\a b c d e f -> a ++ b ++ c ++ d ++ e ++ f) c1 c2 c3 c4 c5 c6
         end = "    */"
 
 stdInnerFooter :: CStyle -> [String] -> String
