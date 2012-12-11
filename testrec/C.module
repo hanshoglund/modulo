@@ -1,0 +1,8 @@
+
+module C
+{
+    import Nest.A;
+    import Nest.Deep.A;
+
+    type Foo = Double;
+}

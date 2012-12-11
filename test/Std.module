@@ -6,28 +6,28 @@
  */
 module Std
 {
-    import assert;
-    import complex;
-    import ctype;
-    import errno;
-    import fenv;
-    import float;
-    import inttypes;
-    import limits;
-    import locale;
-    import math;
-    import setjmp;
-    import signal;
-    import stdalign;
-    import stdarg;
-    import stdbool;
-    import stddef;
-    import stdint;
-    import stdio;
-    import stdlib;
-    import string;
-    import tgmath;
-    import time;
-    import wchar;
-    import wctype;
+    import "C" assert;
+    import "C" complex;
+    import "C" ctype;
+    import "C" errno;
+    import "C" fenv;
+    import "C" float;
+    import "C" inttypes;
+    import "C" limits;
+    import "C" locale;
+    import "C" math;
+    import "C" setjmp;
+    import "C" signal;
+    import "C" stdalign;
+    import "C" stdarg;
+    import "C" stdbool;
+    import "C" stddef;
+    import "C" stdint;
+    import "C" stdio;
+    import "C" stdlib;
+    import "C" string;
+    import "C" tgmath;
+    import "C" time;
+    import "C" wchar;
+    import "C" wctype;
 }

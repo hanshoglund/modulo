@@ -1,0 +1,8 @@
+
+module A
+{
+    import B;
+    type Bar = Foo;
+    
+    type MyStruct = opaque;
+}

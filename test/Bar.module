@@ -1,10 +1,17 @@
 
 module Bar
 {                  
-    type A = opaque;
-    type B = opaque;
-    foo : A -> B;
-    foo : (A,A) -> B;
+    // foo : () -> (() -> Void)*;
+    foo : Int -> (Float -> Double)*;
+
+
+    // type A = opaque;
+    // type B = opaque;
+    // foo : A -> B;
+    // foo : (A, A) -> B;
+    // foo : ([A x 2], A) -> B;
+    // type String = Char*;
+    // type ShortString = [Char x 24];
 
     // b : (Float, Int8, UInt32) -> Int*;
     // b : Float -> Float;
