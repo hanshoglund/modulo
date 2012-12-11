@@ -95,13 +95,27 @@ simplify (Name n)    = Name n
 simplify (QName m n) = QName (simp m n) n
     where
         simp mn@(ModuleName (m :| ms)) n
-            | n `lastOf` ms = ModuleName (m :| drop (length n) ms)
-            | otherwise     = mn
+            | unmangle n `isSuffixOf` concatMap unmangle ms 
+                = ModuleName (m :| concat (dropNestEnd (length $ unmangle n) (map unmangle ms)))
+            | otherwise     = mn
 
         x `lastOf` [] = False
         x `lastOf` xs = x == last xs
 
 
+dropNestEnd :: Int -> [[a]] -> [[a]]
+dropNestEnd n = reverseDeep . dropNest n . reverseDeep
+
+reverseDeep :: [[a]] -> [[a]]
+reverseDeep = reverse . map reverse
+        
+dropNest :: Int -> [[a]] -> [[a]]
+dropNest _ []  = []
+dropNest 0 xss = xss
+dropNest n (xs:xss) = drop n xs : dropNest m xss
+    where
+        m = n - length xs `max` 0
+        
 
 
 
