@@ -388,55 +388,55 @@ convertFooter st mod = mempty
 --
 flattenModule :: CStyle -> Module -> Module
 flattenModule st (Module n is ds) = Module n is (map (flattenDecl st) ds)
-    where
-        flattenDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (flattenType st) t)
-        flattenDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (flattenFunType st t)
-        flattenDecl st (TagDecl t)         = TagDecl (flattenType st t)
-        flattenDecl st (ConstDecl n v t)   = ConstDecl (translConst n) v (flattenType st t)
-        flattenDecl st (GlobalDecl n v t)  = GlobalDecl (translGlobal n) v (flattenType st t)
 
-        flattenType st (PrimType t)  = PrimType t
-        flattenType st (AliasType n) = AliasType $ flattenAlias st n
-        flattenType st (RefType t)   = RefType   $ flattenRefType st t
-        flattenType st (FunType t)   = FunType   $ flattenFunType st t
-        flattenType st (CompType t)  = CompType  $ flattenCompType st t
+flattenDecl st (TypeDecl n t)      = TypeDecl (translType st n) (fmap (flattenType st) t)
+flattenDecl st (FunctionDecl n t)  = FunctionDecl (translFun st n) (flattenFunType st t)
+flattenDecl st (TagDecl t)         = TagDecl (flattenType st t)
+flattenDecl st (ConstDecl n v t)   = ConstDecl (translConst st n) v (flattenType st t)
+flattenDecl st (GlobalDecl n v t)  = GlobalDecl (translGlobal st n) v (flattenType st t)
 
-        flattenAlias :: CStyle -> Name -> Name
-        flattenAlias st n = translType n
+flattenType st (PrimType t)  = PrimType t
+flattenType st (AliasType n) = AliasType $ flattenAlias st n
+flattenType st (RefType t)   = RefType   $ flattenRefType st t
+flattenType st (FunType t)   = FunType   $ flattenFunType st t
+flattenType st (CompType t)  = CompType  $ flattenCompType st t
 
-        flattenRefType :: CStyle -> RefType -> RefType
-        flattenRefType st (Pointer t) = Pointer (flattenType st t)
-        flattenRefType st (Array t n) = Array (flattenType st t) n
+flattenAlias :: CStyle -> Name -> Name
+flattenAlias st n = translType st n
 
-        flattenFunType :: CStyle -> FunType -> FunType
-        flattenFunType st (Function as r) = Function (fmap (flattenType st) as) (flattenType st r)
+flattenRefType :: CStyle -> RefType -> RefType
+flattenRefType st (Pointer t) = Pointer (flattenType st t)
+flattenRefType st (Array t n) = Array (flattenType st t) n
 
-        flattenCompType :: CStyle -> CompType -> CompType
-        flattenCompType st (Enum ns)     = Enum   $ fmap translEnumField ns
-        flattenCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField n, flattenType st t)) ns
-        flattenCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, flattenType st t)) ns
-        flattenCompType st (BitField ns) = notSupported "Bit-fields"
+flattenFunType :: CStyle -> FunType -> FunType
+flattenFunType st (Function as r) = Function (fmap (flattenType st) as) (flattenType st r)
 
-        translType    :: Name -> Name
-        translType    = mangleName (typePrefixMangler st) (typeMangler st)
+flattenCompType :: CStyle -> CompType -> CompType
+flattenCompType st (Enum ns)     = Enum   $ fmap (translEnumField st) ns
+flattenCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField st n, flattenType st t)) ns
+flattenCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField st n, flattenType st t)) ns
+flattenCompType st (BitField ns) = notSupported "Bit-fields"
 
-        translFun     :: Name -> Name
-        translConst   :: Name -> Name
-        translGlobal  :: Name -> Name
-        translFun     = mangleName (valuePrefixMangler st) (funcMangler st)
-        translConst   = mangleName (valuePrefixMangler st) (constMangler st)
-        translGlobal  = mangleName (valuePrefixMangler st) (globalMangler st)
+translType :: CStyle -> Name -> Name
+translType st = mangleName (typePrefixMangler st) (typeMangler st)
 
-        translStructField  :: Name -> Name
-        translUnionField  :: Name -> Name
-        translEnumField  :: Name -> Name
-        translStructField = mangleName (valuePrefixMangler st) (structFieldMangler st)
-        translUnionField  = mangleName (valuePrefixMangler st) (unionFieldMangler st)
-        translEnumField   = mangleName (valuePrefixMangler st) (enumFieldMangler st)
+translFun     :: CStyle -> Name -> Name
+translConst   :: CStyle -> Name -> Name
+translGlobal  :: CStyle -> Name -> Name
+translFun     st = mangleName (valuePrefixMangler st) (funcMangler st)
+translConst   st = mangleName (valuePrefixMangler st) (constMangler st)
+translGlobal  st = mangleName (valuePrefixMangler st) (globalMangler st)
 
-        mangleName :: ([String] -> String) -> ([String] -> String) -> Name -> Name
-        mangleName p q (Name n)    = Name $ q (unmangle n)
-        mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList $ m) ++ q (unmangle n)
+translStructField  :: CStyle -> Name -> Name
+translUnionField  :: CStyle -> Name -> Name
+translEnumField  :: CStyle -> Name -> Name
+translStructField st = mangleName (valuePrefixMangler st) (structFieldMangler st)
+translUnionField  st = mangleName (valuePrefixMangler st) (unionFieldMangler st)
+translEnumField   st = mangleName (valuePrefixMangler st) (enumFieldMangler st)
+      
+mangleName :: ([String] -> String) -> ([String] -> String) -> Name -> Name
+mangleName p q (Name n)    = Name $ q (unmangle n)
+mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList $ m) ++ q (unmangle n)
 
 
 
