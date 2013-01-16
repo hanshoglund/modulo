@@ -37,7 +37,7 @@ import Data.Semigroup
 import Language.Modulo
 import Language.Modulo.Util
 import Language.Modulo.Util.Mangle
-import qualified Language.Modulo.Util.Unmangle as Unmangle
+import Language.Modulo.Util.Unmangle
 
 import Language.C.Syntax.AST
 import Language.C.Syntax.Constants
@@ -339,7 +339,7 @@ convertHeader st mod = mempty
     where
         name = getModuleNameList . modName $ mod
         guard = guardMangler st name
-        mangleImport = concatSep "/" . map toLowerString . map (concatSep "_") . map Unmangle.unmangle
+        mangleImport = concatSep "/" . map toLowerString . map (concatSep "_") . map unmangle
         imports = concatSep "\n"
             . map (withPrefix ("#" ++ includeDirective st ++ " <") 
                 . withSuffix ".h>" 
@@ -389,28 +389,6 @@ convertFooter st mod = mempty
 flattenModule :: CStyle -> Module -> Module
 flattenModule st (Module n is ds) = Module n is (map (flattenDecl st) ds)
     where
-        translType    :: Name -> Name
-        translType    = mangleName (typePrefixMangler st) (typeMangler st)
-
-        translFun     :: Name -> Name
-        translConst   :: Name -> Name
-        translGlobal  :: Name -> Name
-        translFun     = mangleName (valuePrefixMangler st) (funcMangler st)
-        translConst   = mangleName (valuePrefixMangler st) (constMangler st)
-        translGlobal  = mangleName (valuePrefixMangler st) (globalMangler st)
-
-
-        translStructField  :: Name -> Name
-        translUnionField  :: Name -> Name
-        translEnumField  :: Name -> Name
-        translStructField = mangleName (valuePrefixMangler st) (structFieldMangler st)
-        translUnionField  = mangleName (valuePrefixMangler st) (unionFieldMangler st)
-        translEnumField   = mangleName (valuePrefixMangler st) (enumFieldMangler st)
-
-        mangleName :: ([String] -> String) -> ([String] -> String) -> Name -> Name
-        mangleName p q (Name n)    = Name $ q (unmangle n)
-        mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList $ m) ++ q (unmangle n)
-
         flattenDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (flattenType st) t)
         flattenDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (flattenFunType st t)
         flattenDecl st (TagDecl t)         = TagDecl (flattenType st t)
@@ -439,8 +417,26 @@ flattenModule st (Module n is ds) = Module n is (map (flattenDecl st) ds)
         flattenCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, flattenType st t)) ns
         flattenCompType st (BitField ns) = notSupported "Bit-fields"
 
-        unmangle :: String -> [String]
-        unmangle = Unmangle.unmangle
+        translType    :: Name -> Name
+        translType    = mangleName (typePrefixMangler st) (typeMangler st)
+
+        translFun     :: Name -> Name
+        translConst   :: Name -> Name
+        translGlobal  :: Name -> Name
+        translFun     = mangleName (valuePrefixMangler st) (funcMangler st)
+        translConst   = mangleName (valuePrefixMangler st) (constMangler st)
+        translGlobal  = mangleName (valuePrefixMangler st) (globalMangler st)
+
+        translStructField  :: Name -> Name
+        translUnionField  :: Name -> Name
+        translEnumField  :: Name -> Name
+        translStructField = mangleName (valuePrefixMangler st) (structFieldMangler st)
+        translUnionField  = mangleName (valuePrefixMangler st) (unionFieldMangler st)
+        translEnumField   = mangleName (valuePrefixMangler st) (enumFieldMangler st)
+
+        mangleName :: ([String] -> String) -> ([String] -> String) -> Name -> Name
+        mangleName p q (Name n)    = Name $ q (unmangle n)
+        mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList $ m) ++ q (unmangle n)
 
 
 
