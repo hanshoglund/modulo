@@ -24,6 +24,16 @@ module Language.Modulo.C (
         gtkStyle,
         -- appleStyle,
         -- haskellStyle,
+        
+        -- ** Conversion
+        translType,
+        translFun,
+        translConst,
+        translGlobal,
+        translStructField,
+        translUnionField,
+        translEnumField,
+        
         -- ** Rendering
         printModule,
         renderModule,

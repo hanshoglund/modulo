@@ -27,7 +27,8 @@ module Language.Modulo.Lisp (
 
 import Data.Default
 import Data.Semigroup
-import Data.Text(pack)
+import Data.Char (chr)
+import Data.Text (pack)
 import Data.AttoLisp
 
 import Language.Modulo.C
@@ -129,11 +130,24 @@ declOpaque st n = list [symbol "defctype", symbolName n, keyword "pointer"]
 declType :: LispStyle -> Name -> Type -> Lisp             
 declType st n t = list [symbol "defctype", symbolName n, convertType st t]
 
+
+-- TODO Generate
+--
+--   (define-foreign-type T-type () () (:actual-type :pointer))
+--   (define-parse-method T () (make-instance 'T-type))
+
 declFun :: LispStyle -> Name -> FunType -> Lisp             
-declFun st n (Function as r) = list [symbol "defcfun", symbolName n, stringCName n, ret, args]
+declFun st n (Function as r) = list $ [
+    symbol "defcfun", 
+    list [name, cname],
+    ret] ++ args
     where
-        ret  = convertType st r
-        args = list $ map (convertType st) as
+        name        = symbolName n
+        ret         = convertType st r
+        cname       = string $ convertCFunName (cStyle st) n
+        argNames    = map (symbol . return . chr) [97..(97+25)]
+        argTypes    = map (convertType st) as                        
+        args        = map (\(n,t) -> list [n, t]) (zip argNames argTypes)
 
     
 convertType :: LispStyle -> Type -> Lisp
@@ -144,7 +158,7 @@ convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: LispStyle -> Name -> Lisp
-convertAlias st n = keywordName n
+convertAlias st n = symbolName n
 
 convertPrimType :: LispStyle -> PrimType -> Lisp
 convertPrimType st Bool       = keyword "boolean"
@@ -170,12 +184,13 @@ convertPrimType st UInt8      = keyword "uint8"
 convertPrimType st UInt16     = keyword "uint16" 
 convertPrimType st UInt32     = keyword "uint32" 
 convertPrimType st UInt64     = keyword "uint64"
-convertPrimType st Size       = keyword "size"
+-- convertPrimType st Size       = keyword "size"
+-- Note: Size etc are declared in cffi-sys, unfortunately not visible to cffi
+convertPrimType st Size       = keyword "int32" -- FIXME
 convertPrimType st Ptrdiff    = keyword "ptrdiff"
 convertPrimType st Intptr     = keyword "pointer" 
 convertPrimType st UIntptr    = notSupported "Uintptr with Lisp"
 convertPrimType st SChar      = notSupported "Signed chars with Lisp"
--- Note: Size etc are declared in cffi-sys, hopefully visible to cffi
 
 
 convertRefType :: LispStyle -> RefType -> Lisp
@@ -211,9 +226,6 @@ keyword x = Symbol (pack $ ":" ++ x)
 stringName :: Name -> Lisp
 stringName = string . convertName {- getName-}
 
-stringCName :: Name -> Lisp
-stringCName = string . convertCName {- getName-}
-
 symbolName :: Name -> Lisp
 symbolName = symbol . convertName {- getName-}
 
@@ -228,10 +240,13 @@ stripPackage :: [String] -> [String]
 stripPackage = tail
 -- TODO only strip prefix that matches (unmangle (package st))
 
-convertCName :: Name -> String
-convertCName (Name n)    = "c-name"
-convertCName (QName m n) = "c-qname"
+convertCTypeName :: CStyle -> Name -> String
+convertCTypeName st n = getName (translType st n)
 
+convertCFunName :: CStyle -> Name -> String
+convertCFunName st n = getName (translFun st n)
+
+-- TODO type fun const global enumF structF unionF
 
 
 voidPtr = RefType (Pointer $ PrimType Void)
