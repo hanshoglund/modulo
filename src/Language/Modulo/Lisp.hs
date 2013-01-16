@@ -31,6 +31,8 @@ import Data.Text(pack)
 import Data.AttoLisp
 
 import Language.Modulo.C
+import Language.Modulo.Util
+import Language.Modulo.Util.Unmangle
 import Language.Modulo
 
 import qualified Data.List as List
@@ -42,11 +44,14 @@ import qualified Data.List as List
 data LispStyle =
     LispStyle {
         cStyle :: CStyle,                   -- ^ For generating foreign declarations
+        package :: String,                  -- ^ Package in which to generate definitions
         mangleType :: String -> String
     }
 
 stdLispStyle = LispStyle { 
     cStyle = stdStyle,
+    -- package = "cl-user",
+    package = "doremir", -- TODO
     mangleType = id
     }
 
@@ -71,7 +76,8 @@ printModuleLisp = printModuleLispStyle def
 -- Print a module using the specified style.
 --
 printModuleLispStyle :: LispStyle -> Module -> String
-printModuleLispStyle style = concatSep "\n\n" . map show . renderModuleLispStyle style
+printModuleLispStyle style = concatSep "\n" . map show . renderModuleLispStyle style
+-- TODO more intelligent splitting
 
 -- |
 -- Render a module using the default style.
@@ -87,8 +93,10 @@ renderModuleLisp = renderModuleLispStyle def
 -- Returns a Lisp file, represented as a sequence of S-expressions.
 --
 renderModuleLispStyle :: LispStyle -> Module -> [Lisp]
-renderModuleLispStyle = convertTopLevel
+renderModuleLispStyle st = withPrefix (convertPackage st) . convertTopLevel st
 
+convertPackage :: LispStyle -> [Lisp]
+convertPackage st = [list [symbol "in-package", keyword (package st)]]
 
 convertTopLevel :: LispStyle -> Module -> [Lisp]
 convertTopLevel st (Module n is ds) = cds
@@ -116,16 +124,16 @@ convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T
 --
 
 declOpaque :: LispStyle -> Name -> Lisp             
-declOpaque st n = List [symbol "defctype", symbolName n, keyword "pointer"]
+declOpaque st n = list [symbol "defctype", symbolName n, keyword "pointer"]
 
 declType :: LispStyle -> Name -> Type -> Lisp             
-declType st n t = List [symbol "defctype", symbolName n, convertType st t]
+declType st n t = list [symbol "defctype", symbolName n, convertType st t]
 
 declFun :: LispStyle -> Name -> FunType -> Lisp             
-declFun st n (Function as r) = List [symbol "defcfun", stringName n, ret, args]
+declFun st n (Function as r) = list [symbol "defcfun", symbolName n, stringCName n, ret, args]
     where
         ret  = convertType st r
-        args = List $ map (convertType st) as
+        args = list $ map (convertType st) as
 
     
 convertType :: LispStyle -> Type -> Lisp
@@ -171,7 +179,7 @@ convertPrimType st SChar      = notSupported "Signed chars with Lisp"
 
 
 convertRefType :: LispStyle -> RefType -> Lisp
-convertRefType st (Pointer t) = List [keyword "pointer", convertType st t]
+convertRefType st (Pointer t) = list [keyword "pointer", convertType st t]
 convertRefType st (Array t n) = notSupported "Array types with Lisp"
 -- TODO
 
@@ -201,13 +209,29 @@ keyword :: String -> Lisp
 keyword x = Symbol (pack $ ":" ++ x)
 
 stringName :: Name -> Lisp
-stringName = string . getName
+stringName = string . convertName {- getName-}
+
+stringCName :: Name -> Lisp
+stringCName = string . convertCName {- getName-}
 
 symbolName :: Name -> Lisp
-symbolName = symbol . getName
+symbolName = symbol . convertName {- getName-}
 
 keywordName :: Name -> Lisp
-keywordName = keyword . getName
+keywordName = keyword . convertName {- getName-}
+
+convertName :: Name -> String
+convertName (Name n)    = {-withPrefix "#" $ -} toLowerString $ concatSep "-" (unmangle n)
+convertName (QName m n) = {-withPrefix "#" $ -} toLowerString $ concatSep "-" (stripPackage (getModuleNameList m) ++ unmangle n)
+
+stripPackage :: [String] -> [String]
+stripPackage = tail
+-- TODO only strip prefix that matches (unmangle (package st))
+
+convertCName :: Name -> String
+convertCName (Name n)    = "c-name"
+convertCName (QName m n) = "c-qname"
+
 
 
 voidPtr = RefType (Pointer $ PrimType Void)
@@ -221,6 +245,9 @@ instance Semigroup Lisp where
 instance Monoid Lisp where
     mempty  = def
     mappend = (<>)
+
+list :: [Lisp] -> Lisp
+list = List
 
 single :: Lisp -> Lisp
 single a = List [a]
@@ -238,5 +265,5 @@ assureList x              = List [x]
 
 notSupported x = error $ "Not supported yet: " ++ x
 
-concatSep :: [a] -> [[a]] -> [a]
-concatSep x = List.concat . List.intersperse x
+-- concatSep :: [a] -> [[a]] -> [a]
+-- concatSep x = List.concat . List.intersperse x

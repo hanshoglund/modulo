@@ -321,7 +321,7 @@ renderModuleStyle style mod = (header, decls, footer)
         header = convertHeader style mod'
         decls  = convertTopLevel style mod'
         footer = convertFooter style mod'
-        mod' = renameModule style mod
+        mod' = flattenModule style mod
 
 
 -------------------------------------------------------------------------------------
@@ -375,16 +375,19 @@ convertFooter st mod = mempty
 
 
 -------------------------------------------------------------------------------------
--- Renaming
+-- Flattening
 
 
 -- |
--- Rewrite a module to use C-style names.
+-- Rewrite a module to use C-style (flat) names.
+--
+-- (This used to be called rename, until the addition of the eponymous module that does name 
+-- resolution. This function assumes names have already been resolved.)
 --
 -- The module returned from this function will have no QName constructors.
 --
-renameModule :: CStyle -> Module -> Module
-renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
+flattenModule :: CStyle -> Module -> Module
+flattenModule st (Module n is ds) = Module n is (map (flattenDecl st) ds)
     where
         translType    :: Name -> Name
         translType    = mangleName (typePrefixMangler st) (typeMangler st)
@@ -408,33 +411,33 @@ renameModule st (Module n is ds) = Module n is (map (renameDecl st) ds)
         mangleName p q (Name n)    = Name $ q (unmangle n)
         mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList $ m) ++ q (unmangle n)
 
-        renameDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (renameType st) t)
-        renameDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (renameFunType st t)
-        renameDecl st (TagDecl t)         = TagDecl (renameType st t)
-        renameDecl st (ConstDecl n v t)   = ConstDecl (translConst n) v (renameType st t)
-        renameDecl st (GlobalDecl n v t)  = GlobalDecl (translGlobal n) v (renameType st t)
+        flattenDecl st (TypeDecl n t)      = TypeDecl (translType n) (fmap (flattenType st) t)
+        flattenDecl st (FunctionDecl n t)  = FunctionDecl (translFun n) (flattenFunType st t)
+        flattenDecl st (TagDecl t)         = TagDecl (flattenType st t)
+        flattenDecl st (ConstDecl n v t)   = ConstDecl (translConst n) v (flattenType st t)
+        flattenDecl st (GlobalDecl n v t)  = GlobalDecl (translGlobal n) v (flattenType st t)
 
-        renameType st (PrimType t)  = PrimType t
-        renameType st (AliasType n) = AliasType $ renameAlias st n
-        renameType st (RefType t)   = RefType   $ renameRefType st t
-        renameType st (FunType t)   = FunType   $ renameFunType st t
-        renameType st (CompType t)  = CompType  $ renameCompType st t
+        flattenType st (PrimType t)  = PrimType t
+        flattenType st (AliasType n) = AliasType $ flattenAlias st n
+        flattenType st (RefType t)   = RefType   $ flattenRefType st t
+        flattenType st (FunType t)   = FunType   $ flattenFunType st t
+        flattenType st (CompType t)  = CompType  $ flattenCompType st t
 
-        renameAlias :: CStyle -> Name -> Name
-        renameAlias st n = translType n
+        flattenAlias :: CStyle -> Name -> Name
+        flattenAlias st n = translType n
 
-        renameRefType :: CStyle -> RefType -> RefType
-        renameRefType st (Pointer t) = Pointer (renameType st t)
-        renameRefType st (Array t n) = Array (renameType st t) n
+        flattenRefType :: CStyle -> RefType -> RefType
+        flattenRefType st (Pointer t) = Pointer (flattenType st t)
+        flattenRefType st (Array t n) = Array (flattenType st t) n
 
-        renameFunType :: CStyle -> FunType -> FunType
-        renameFunType st (Function as r) = Function (fmap (renameType st) as) (renameType st r)
+        flattenFunType :: CStyle -> FunType -> FunType
+        flattenFunType st (Function as r) = Function (fmap (flattenType st) as) (flattenType st r)
 
-        renameCompType :: CStyle -> CompType -> CompType
-        renameCompType st (Enum ns)     = Enum   $ fmap translEnumField ns
-        renameCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField n, renameType st t)) ns
-        renameCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, renameType st t)) ns
-        renameCompType st (BitField ns) = notSupported "Bit-fields"
+        flattenCompType :: CStyle -> CompType -> CompType
+        flattenCompType st (Enum ns)     = Enum   $ fmap translEnumField ns
+        flattenCompType st (Struct ns)   = Struct $ fmap (\(n,t) -> (translStructField n, flattenType st t)) ns
+        flattenCompType st (Union ns)    = Union  $ fmap (\(n,t) -> (translUnionField n, flattenType st t)) ns
+        flattenCompType st (BitField ns) = notSupported "Bit-fields"
 
         unmangle :: String -> [String]
         unmangle = Unmangle.unmangle
