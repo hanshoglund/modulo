@@ -102,45 +102,53 @@ convertPackage st = [list [symbol "in-package", keyword (package st)]]
 convertTopLevel :: LispStyle -> Module -> [Lisp]
 convertTopLevel st (Module n is ds) = cds
     where
-        cds = map (convertDecl st) ds
+        cds = concatMap (convertDecl st) ds
 
-convertDecl :: LispStyle -> Decl -> Lisp
+convertDecl :: LispStyle -> Decl -> [Lisp]
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n
 convertDecl st (TypeDecl n (Just t)) = declType st n t                -- typedef T N;
-convertDecl st (FunctionDecl n t)  = declFun st n t                 -- T n (as);
-convertDecl st (TagDecl t)         = notSupported "Tag decls"       -- T;
-convertDecl st (ConstDecl n v t)   = notSupported "Constants"       -- T n; or T n = v;
-convertDecl st (GlobalDecl n v t)  = notSupported "Globals"         -- T n; or T n = v;
-
---
--- TODO To be more type-safe, we want to generate something like this:
--- 
--- (defclass set () ((ptr :pointer)))
--- (define-foreign-type set-type () 
---   () 
---   (:actual-type :pointer)
---   (:parse-simple set))
--- (defmethod translate-to-foreign (x (type set-type))
---   (slot-value x 'pointer))
---
-
-declOpaque :: LispStyle -> Name -> Lisp             
-declOpaque st n = list [symbol "defctype", symbolName n, keyword "pointer"]
-
-declType :: LispStyle -> Name -> Type -> Lisp             
-declType st n t = list [symbol "defctype", symbolName n, convertType st t]
-
+convertDecl st (FunctionDecl n t)    = declFun st n t                 -- T n (as);
+convertDecl st (TagDecl t)           = notSupported "Tag decls"       -- T;
+convertDecl st (ConstDecl n v t)     = notSupported "Constants"       -- T n; or T n = v;
+convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or T n = v;
 
 -- TODO Generate
 --
---   (define-foreign-type T-type () () (:actual-type :pointer))
---   (define-parse-method T () (make-instance 'T-type))
+--    (define-foreign-type T-type () () (:actual-type :pointer))
+--    (define-parse-method T () (make-instance 'T-type))
+--
+-- If discriminateTypes is true, generate
+--    (defclass            T () ((nat :initarg :nat)) )
+--
+--    (defmethod translate-to-foreign (x (type T-type))
+--      (slot-value x 'nat)) 
+--    (defmethod translate-from-foreign (x (type T-type))
+--      (make-instance 'T :nat x))
 
-declFun :: LispStyle -> Name -> FunType -> Lisp             
-declFun st n (Function as r) = list $ [
-    symbol "defcfun", 
-    list [name, cname],
-    ret] ++ args
+
+declOpaque :: LispStyle -> Name -> [Lisp]             
+declOpaque st n = [defType, defParse]
+    where
+        defType     = list [symbol "define-foreign-type", typeName, nil, nil, actual]
+        actual      = list [keyword "actual-type", keyword "pointer"]
+
+        defParse    = list [symbol "define-parse-method", parseName, nil, create]
+        create      = list [symbol "make-instance", qTypeName]
+
+        qTypeName   = symbol $ withPrefix "'" $ withSuffix "-type" $ convertName n                                                       
+        typeName    = symbol $ withSuffix "-type" $ convertName n                                                       
+        parseName   = symbol $ convertName n
+        
+
+-- return $ list [symbol "defctype", symbolName n, keyword "pointer"]
+
+
+declType :: LispStyle -> Name -> Type -> [Lisp]             
+declType st n t = return $ list [symbol "defctype", symbolName n, convertType st t]
+
+declFun :: LispStyle -> Name -> FunType -> [Lisp]             
+declFun st n (Function as r) = 
+    return $ list $ [symbol "defcfun", list [name, cname], ret] ++ args
     where
         name        = symbolName n
         ret         = convertType st r
