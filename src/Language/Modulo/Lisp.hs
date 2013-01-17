@@ -46,14 +46,13 @@ data LispStyle =
     LispStyle {
         cStyle :: CStyle,                   -- ^ For generating foreign declarations
         package :: String,                  -- ^ Package in which to generate definitions
-        mangleType :: String -> String
+        safeOpaque :: Bool                  -- ^ If true, generate a wrapper class for each opaque type.
     }
 
-stdLispStyle = LispStyle { 
-    cStyle = stdStyle,
-    -- package = "cl-user",
-    package = "doremir", -- TODO
-    mangleType = id
+stdLispStyle = LispStyle {       
+    cStyle          = stdStyle,
+    package         = "doremir",    -- FIXME should be cl-user
+    safeOpaque      = True
     }
 
 -- | Default instance using 'stdStyle'.
@@ -117,7 +116,7 @@ convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or
 --    (define-foreign-type T-type () () (:actual-type :pointer))
 --    (define-parse-method T () (make-instance 'T-type))
 --
--- If discriminateTypes is true, generate
+-- If safeOpaque true, also generate
 --    (defclass            T () ((nat :initarg :nat)) )
 --
 --    (defmethod translate-to-foreign (x (type T-type))
@@ -127,17 +126,27 @@ convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or
 
 
 declOpaque :: LispStyle -> Name -> [Lisp]             
-declOpaque st n = [defType, defParse]
+declOpaque st n = [defType, defParse] ++ if (safeOpaque st) then [defClass, defInput, defOutput] else []
     where
-        defType     = list [symbol "define-foreign-type", typeName, nil, nil, actual]
+        defType     = list [symbol "define-foreign-type", metaName, nil, nil, actual]
         actual      = list [keyword "actual-type", keyword "pointer"]
+        defParse    = list [symbol "define-parse-method", typeName, nil, create]
+        create      = list [symbol "make-instance", qualMetaName]
+         
+        defClass    = list [symbol "defclass", typeName, nil, slots]
+        slots       = list [list [symbol slot, keyword "initarg", keyword slot]]
+        defInput    = list [symbol "defmethod", symbol "translate-to-foreign", 
+                            list [symbol "x", list [symbol "type", metaName]],
+                            list [symbol "slot-value", symbol "x", symbol (withPrefix "'" slot)]]
+        defOutput   = list [symbol "defmethod", symbol "translate-from-foreign",
+                            list [symbol "x", list [symbol "type", metaName]],
+                            list [symbol "make-instance", qualTypeName, keyword slot, symbol "x"]]
 
-        defParse    = list [symbol "define-parse-method", parseName, nil, create]
-        create      = list [symbol "make-instance", qTypeName]
-
-        qTypeName   = symbol $ withPrefix "'" $ withSuffix "-type" $ convertName n                                                       
-        typeName    = symbol $ withSuffix "-type" $ convertName n                                                       
-        parseName   = symbol $ convertName n
+        slot            = withSuffix "-ptr" $ convertName n
+        qualMetaName    = symbol $ withPrefix "'" $ withSuffix "-type" $ convertName n                                                       
+        metaName        = symbol $ withSuffix "-type" $ convertName n                                                       
+        qualTypeName    = symbol $ withPrefix "'" $ convertName n
+        typeName        = symbol $ convertName n
         
 
 -- return $ list [symbol "defctype", symbolName n, keyword "pointer"]
@@ -210,7 +219,7 @@ convertFunType :: LispStyle -> FunType -> Lisp
 convertFunType st (Function as r) = convertType st voidPtr
 
 convertCompType :: LispStyle -> CompType -> Lisp
-convertCompType st (Enum as)       = convertType st voidPtr
+convertCompType st (Enum as)       = convertType st (PrimType Int)      -- TODO
 convertCompType st (Struct as)     = convertType st voidPtr
 convertCompType st (Union as)      = convertType st voidPtr
 convertCompType st (BitField as)   = error "Not implemented: bitfields" -- TODO
