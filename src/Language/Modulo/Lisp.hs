@@ -116,6 +116,9 @@ convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or
 --    (define-foreign-type T-type () () (:actual-type :pointer))
 --    (define-parse-method T () (make-instance 'T-type))
 --
+-- OR
+--    (define-foreign-type T-type () () (:actual-type :pointer) (:simple-parser T))
+--
 -- If safeOpaque true, also generate
 --    (defclass            T () ((nat :initarg :nat)) )
 --
