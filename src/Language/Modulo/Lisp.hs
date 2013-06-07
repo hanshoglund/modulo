@@ -51,7 +51,7 @@ data LispStyle =
 
 stdLispStyle = LispStyle {       
     cStyle          = stdStyle,
-    package         = "doremir",    -- FIXME should be cl-user
+    package         = "cl-user",
     safeOpaque      = True
     }
 
@@ -206,7 +206,7 @@ convertPrimType st UInt32     = keyword "uint32"
 convertPrimType st UInt64     = keyword "uint64"
 -- convertPrimType st Size       = keyword "size"
 -- Note: Size etc are declared in cffi-sys, unfortunately not visible to cffi
-convertPrimType st Size       = keyword "int32" -- FIXME
+convertPrimType st Size       = keyword "int32" -- FIXME assume? -- FIXME shouldn't this be unsigned?
 convertPrimType st Ptrdiff    = keyword "ptrdiff"
 convertPrimType st Intptr     = keyword "pointer" 
 convertPrimType st UIntptr    = notSupported "Uintptr with Lisp"
