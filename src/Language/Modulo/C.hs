@@ -652,16 +652,28 @@ memberDeclrSize declr size = (Just declr, Nothing, Just size)
 paramDeclr :: CDeclr -> (Maybe CDeclr, Maybe CInit, Maybe CExpr)
 paramDeclr declr = (Just declr, Nothing, Nothing)
 
-
-cStruct t ds = CSUType r defInfo where r = CStruct CStructTag t ds [] defInfo
-cUnion  t ds = CSUType r defInfo where r = CStruct CUnionTag  t ds [] defInfo
-
 -- | Used for all NodeInfo values in generated code
 defInfo :: NodeInfo
 defInfo = error "Can not read nodeInfo"
 -- defInfo = OnlyPos $ Position undefined 0 0
 
 notSupported x = error $ "Not supported yet: " ++ x
+
+cStruct t ds = CSUType r defInfo where r = CStruct CStructTag t ds [] defInfo
+cUnion  t ds = CSUType r defInfo where r = CStruct CUnionTag  t ds [] defInfo
+
+
+instance Num CInteger where
+    (CInteger a r f) + (CInteger b _ _) = CInteger (a+b) r f
+    (CInteger a r f) * (CInteger b _ _) = CInteger (a*b) r f
+    abs (CInteger a r f)                = CInteger (abs a) r f
+    signum (CInteger a r f)             = CInteger (signum a) r f
+    fromInteger a                       = CInteger a DecRepr noFlags
+
+
+{-  
+
+Extra instances for debug purposes
 
 deriving instance Show CTranslUnit
 deriving instance Show CExtDecl
@@ -687,11 +699,5 @@ deriving instance Show CConst
 deriving instance Show CEnum
 deriving instance Show CStructUnion
 deriving instance Show CStructTag
-
-instance Num CInteger where
-    (CInteger a r f) + (CInteger b _ _) = CInteger (a+b) r f
-    (CInteger a r f) * (CInteger b _ _) = CInteger (a*b) r f
-    abs (CInteger a r f)                = CInteger (abs a) r f
-    signum (CInteger a r f)             = CInteger (signum a) r f
-    fromInteger a                       = CInteger a DecRepr noFlags
+-}
 
