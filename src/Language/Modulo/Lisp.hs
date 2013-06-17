@@ -38,10 +38,6 @@ import Language.Modulo
 
 import qualified Data.List as List
 
--- import qualified Data.List as List
--- import qualified Data.Char as Char
--- import qualified Data.List.NonEmpty as NonEmpty
-
 data LispStyle =
     LispStyle {
         cStyle :: CStyle,                   -- ^ For generating foreign declarations

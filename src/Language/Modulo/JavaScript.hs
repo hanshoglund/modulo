@@ -16,5 +16,9 @@
 --
 -------------------------------------------------------------------------------------
 
+{-
+    'fae_audio_engine_version':             ['pointer', [] ],
+-}
+
 module Language.Modulo.JavaScript ( 
   ) where

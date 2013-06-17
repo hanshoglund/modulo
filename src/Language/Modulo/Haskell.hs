@@ -14,5 +14,12 @@
 --
 -------------------------------------------------------------------------------------
 
+{-                                          
+    module (...) where
+    data FaeString
+    foreign import ccall "fae_fae_version_string"            
+        c_VersionString :: IO (Ptr FaeString)
+-}
+
 module Language.Modulo.Haskell ( 
   ) where
