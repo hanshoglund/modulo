@@ -139,6 +139,7 @@ compileFile opts input output = do
             Right m -> m
         
         printMod :: ModLang -> Module -> String
-        printMod C    = printModule
-        printMod Lisp = printModuleLisp
+        printMod C       = printModule
+        printMod Lisp    = printModuleLisp
+        printMod Haskell = printModuleHaskell
                                                  

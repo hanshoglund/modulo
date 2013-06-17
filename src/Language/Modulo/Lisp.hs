@@ -248,6 +248,7 @@ symbolName = symbol . convertName {- getName-}
 keywordName :: Name -> Lisp
 keywordName = keyword . convertName {- getName-}
 
+-- TODO there should be in the style
 convertName :: Name -> String
 convertName (Name n)    = {-withPrefix "#" $ -} toLowerString $ concatSep "-" (unmangle n)
 convertName (QName m n) = {-withPrefix "#" $ -} toLowerString $ concatSep "-" (stripPackage (getModuleNameList m) ++ unmangle n)
