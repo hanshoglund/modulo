@@ -72,7 +72,7 @@ printModuleLisp = printModuleLispStyle def
 -- Print a module using the specified style.
 --
 printModuleLispStyle :: LispStyle -> Module -> String
-printModuleLispStyle style = concatSep "\n" . map show . renderModuleLispStyle style
+printModuleLispStyle style = (++ "\n\n") . concatSep "\n" . map show . renderModuleLispStyle style
 -- TODO more intelligent splitting
 
 -- |

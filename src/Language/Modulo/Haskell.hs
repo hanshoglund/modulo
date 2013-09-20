@@ -80,7 +80,7 @@ printModuleHaskell = printModuleHaskellStyle def
 -- Print a module using the specified style.
 --
 printModuleHaskellStyle :: HaskellStyle -> Module -> String
-printModuleHaskellStyle style = prettyPrint . renderModuleHaskellStyle style
+printModuleHaskellStyle style = (++ "\n\n") . prettyPrint . renderModuleHaskellStyle style
 
 -- |
 -- Render a module using the default style.
@@ -99,7 +99,7 @@ renderModuleHaskellStyle :: HaskellStyle -> Module -> HsModule
 renderModuleHaskellStyle st = convertTopLevel st
 
 convertTopLevel :: HaskellStyle -> Module -> HsModule
-convertTopLevel st (Module n is ds) = HsModule def (Hs.Module "") Nothing [] $ fmap (convertDecl st) ds
+convertTopLevel st (Module n is ds) = HsModule def (convertModule n) Nothing [] $ fmap (convertDecl st) ds
 
 convertDecl :: HaskellStyle -> Decl -> HsDecl
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n
@@ -110,7 +110,8 @@ convertDecl st (ConstDecl n v t)     = notSupported "Constants"       -- T n; or
 convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or T n = v;
  
 declOpaque :: HaskellStyle -> Name -> HsDecl             
-declOpaque st n = HsDataDecl def [] (HsIdent $ getName n) [] [] []
+declOpaque st (Name n)    = HsDataDecl def [] (HsIdent n) [] [] []
+declOpaque st (QName _ n) = HsDataDecl def [] (HsIdent n) [] [] []
 
 declType :: HaskellStyle -> Name -> Type -> HsDecl             
 declType st n t = HsTypeDecl def (HsIdent $ getName n) [] (convertType st t)
@@ -133,7 +134,7 @@ convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: HaskellStyle -> Name -> HsType 
 convertAlias st (Name n)    = HsTyCon $ (UnQual (HsIdent n))
-convertAlias st (QName m n) = HsTyCon $ (Qual (Hs.Module $ concatSep "." $ getModuleNameList m) (HsIdent n))
+convertAlias st (QName m n) = HsTyCon $ (Qual (convertModule m) (HsIdent n))
 
 convertPrimType :: HaskellStyle -> PrimType -> HsType
 convertPrimType st Bool       = HsTyCon (UnQual "CInt")
@@ -190,5 +191,8 @@ instance IsString Hs.Module where
 
 instance Default SrcLoc where
     def = SrcLoc "" 0 0
+
+convertModule :: ModuleName -> Hs.Module
+convertModule = Hs.Module . concatSep "." . getModuleNameList
 
 notSupported x = error $ "Not supported yet: " ++ x

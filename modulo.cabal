@@ -1,6 +1,6 @@
 
 name:               modulo
-version:            1.3
+version:            1.4
 cabal-version:      >= 1.6
 author:             Hans Hoglund
 maintainer:         Hans Hoglund <hans@hanshoglund.se>
@@ -31,7 +31,7 @@ library
         parsec          >= 3.1.2 && < 4, 
         prettify        >= 1.0 && < 2,
         language-c, 
-        haskell-src,
+        haskell-src     == 1.0.1.5,
         atto-lisp
     hs-source-dirs: src
     exposed-modules:

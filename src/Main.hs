@@ -15,6 +15,7 @@ import System.Console.GetOpt
 import Language.Modulo
 import Language.Modulo.C
 import Language.Modulo.Lisp
+import Language.Modulo.Haskell
 import Language.Modulo.Load
 import Language.Modulo.Parse
 import Language.Modulo.Rename
@@ -67,7 +68,7 @@ readPackage :: Maybe String -> ModOpt
 readPackage = Package . maybe "user" id
 
 
-version = "modulo-1.0"
+version = "modulo-1.4"
 header  = "Usage: modulo [options]\n" ++
           "Usage: modulo [options] files...\n" ++
           "\n" ++
