@@ -1,9 +1,23 @@
 
 /**
-    @defgroup Std Standard library
-    @brief
-        Imports the C standard library.
+    Imports the C standard library.
+    
+    Mutable atomic references.
+
+    @par Literals
+    - `atomic()`
+
+    @par Implements
+    - fa_equal_t
+    - fa_order_t
+    - fa_copy_t
+    - fa_destroy_t
+    - fa_string_show_t
+
+    @see
+    - [Data structures](@ref DataStructures)
  */
+
 module Std
 {
     import "C" assert;
@@ -30,4 +44,17 @@ module Std
     import "C" time;
     import "C" wchar;
     import "C" wctype;
+
+    /**
+        A voice type
+        This is the next line 
+        This is the last one
+     */
+    type Vox = Void;
+    type A   = Void;
+    
+    /**
+        The identity function.
+     */
+    id : A -> A;
 }

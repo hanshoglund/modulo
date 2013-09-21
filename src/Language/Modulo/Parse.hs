@@ -280,8 +280,8 @@ aliasTypeParser = do
 
 docComment :: Parser String
 docComment  = do
-    string "/@@"
-    manyTill anyChar (try (string "@/"))
+    string "/**"
+    manyTill anyChar (try (string "*/"))
 
 -------------------------------------------------------------------------------------
 
@@ -319,7 +319,7 @@ follow p q    = do
 
 lexer :: TokenParser ()
 lexer = makeTokenParser $ LanguageDef {
-    commentStart    =  "/*",
+    commentStart    =  "/*!",
     commentEnd      =  "*/",
     commentLine     =  "//",
     nestedComments  =  True,

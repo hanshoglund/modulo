@@ -38,7 +38,9 @@ module Language.Modulo.C (
         printModule,
         renderModule,
         printModuleStyle,
-        renderModuleStyle,
+        renderModuleStyle,      
+        
+        printModuleComm,
   ) where
 
 import Data.Default
@@ -334,6 +336,55 @@ renderModuleStyle style mod = (header, decls, footer)
         mod' = flattenModule style mod
 
 
+
+
+
+-- |
+-- Print a module using the default style.
+--
+printModuleComm :: Module -> String
+printModuleComm = printModuleStyleComm def
+
+-- |
+-- Print a module using the specified style.
+--
+printModuleStyleComm :: CStyle -> Module -> String
+printModuleStyleComm style = (\(x,y,z) -> x ++ concatSep "\n\n" (map sdd y) ++ z) . renderModuleStyleComm style
+    where
+        sdd (doc, decl) = sd doc ++ "\n" ++ (show . pretty) decl ++ ";"
+        sd ""  = ""
+        sd str = "/**" ++ (removeEmptyLast . deindent) str ++ "*/"
+
+
+
+deindent :: String -> String
+deindent = unlines . fmap f . lines
+    where
+        f (' ':' ':' ':' ':' ':' ':' ':' ':xs) = "    "++xs
+        f xs = xs
+
+removeEmptyLast :: String -> String
+removeEmptyLast = reverse . f . reverse
+    where
+        f ('\n':'\n':xs)                 = "\n"++xs
+        f ('\n':' ':' ':' ':' ':' ':'\n':xs) = "\n"++xs
+        f xs             = xs
+
+-- |
+-- Render a module using the specified style, preserving comments.
+--
+-- Returns a C header file, represented as a 'CTranslUnit' with enclosing header and footer strings.
+--
+renderModuleStyleComm :: CStyle -> Module -> (String, [(String, CDecl)], String)
+renderModuleStyleComm style mod = (header, decls, footer)
+    where
+        -- TODO module docs in header
+        header = convertHeader style mod'
+        decls  = convertTopLevelComm style mod'
+        footer = convertFooter style mod'
+        mod' = flattenModule style mod
+
+
 -------------------------------------------------------------------------------------
 -- Header and footer
 
@@ -458,6 +509,13 @@ convertTopLevel :: CStyle -> Module -> CTranslUnit
 convertTopLevel st (Module doc n is ds) = CTranslUnit cds defInfo
     where
         cds = map (CDeclExt . convertDecl st . snd) ds
+
+convertTopLevelComm :: CStyle -> Module -> [(String, CDecl)]
+convertTopLevelComm st (Module doc n is ds) = fmap (first getDoc . second (convertDecl st)) ds
+    where
+        first f = swap . fmap f . swap
+        second = fmap
+        swap (a,b) = (b,a)
 
 convertDecl :: CStyle -> Decl -> CDecl
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n
