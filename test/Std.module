@@ -5,7 +5,7 @@
     Mutable atomic references.
 
     @par Literals
-    - `atomic()`
+    - `std()`
 
     @par Implements
     - fa_equal_t
@@ -17,7 +17,6 @@
     @see
     - [Data structures](@ref DataStructures)
  */
-
 module Std
 {
     import "C" assert;

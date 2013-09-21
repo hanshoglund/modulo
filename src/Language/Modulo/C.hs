@@ -83,7 +83,7 @@ data CStyle =
         includeStyle         :: ImportStyle,          -- ^ How to write import declarations
         includeDirective     :: String,               -- ^ Import directive, usually @include@.
         guardMangler        :: [String] -> String,   -- ^ Mangler for names of header guards
-        innerHeader         :: [String] -> String,   -- ^ Inner header mangler
+        innerHeader         :: [String] -> String -> String,   -- ^ Inner header mangler (components moduleDoc)
         innerFooter         :: [String] -> String,   -- ^ Inner footer mangler
 
         -- Prefix
@@ -121,10 +121,12 @@ instance Monoid CStyle where
     mappend = (<>)
 
 
-stdInnerHeader :: CStyle -> [String] -> String
-stdInnerHeader _ ns = concat (post "    @{\n" cs) ++ end
-    where
-        c1 = ["/** "] ++ repeat "    "
+stdInnerHeader :: CStyle -> [String] -> String -> String
+stdInnerHeader _ ns doc = begin ++ concat (post "    @{\n" cs) ++ end
+    where    
+        begin = "/** @addtogroup " ++ concat ns ++ "\n" ++ doc ++ "\n"
+        
+        c1 = repeat "    "
         c2 = repeat "@defgroup "
         c3 = map concat . drop 1 . List.inits $ ns
         c4 = repeat " "
@@ -330,7 +332,7 @@ renderModule = renderModuleStyle def
 renderModuleStyle :: CStyle -> Module -> (String, CTranslUnit, String)
 renderModuleStyle style mod = (header, decls, footer)
     where
-        header = convertHeader style mod'
+        header = convertHeader style False mod'
         decls  = convertTopLevel style mod'
         footer = convertFooter style mod'
         mod' = flattenModule style mod
@@ -355,8 +357,7 @@ printModuleStyleComm style = (\(x,y,z) -> x ++ concatSep "\n\n" (map sdd y) ++ z
         sd ""  = ""
         sd str = "/**" ++ (removeEmptyLast . deindent) str ++ "*/"
 
-
-
+-- Hacky functions to remove strange indentation
 deindent :: String -> String
 deindent = unlines . fmap f . lines
     where
@@ -379,7 +380,7 @@ renderModuleStyleComm :: CStyle -> Module -> (String, [(String, CDecl)], String)
 renderModuleStyleComm style mod = (header, decls, footer)
     where
         -- TODO module docs in header
-        header = convertHeader style mod'
+        header = convertHeader style True mod'
         decls  = convertTopLevelComm style mod'
         footer = convertFooter style mod'
         mod' = flattenModule style mod
@@ -388,14 +389,15 @@ renderModuleStyleComm style mod = (header, decls, footer)
 -------------------------------------------------------------------------------------
 -- Header and footer
 
-convertHeader :: CStyle -> Module -> String
-convertHeader st mod = mempty
+-- Args: style withDocs module
+convertHeader :: CStyle -> Bool -> Module -> String
+convertHeader st withDocs mod = mempty
     ++ "\n"
     ++ guardBegin (guardStyle st) guard
     ++ "\n"
     ++ imports
     ++ "\n\n"
-    ++ innerHeader st name
+    ++ innerHeader st name (if withDocs then getDoc (modDoc mod) else "")
     ++ "\n\n"
     where
         name = getModuleNameList . modName $ mod
