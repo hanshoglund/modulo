@@ -86,7 +86,7 @@ module Language.Modulo (
         getModuleNameList,
 
         -- ** Documentation
-        Doc,
+        Doc(..),
         
         -- ** Names
         Name(..),

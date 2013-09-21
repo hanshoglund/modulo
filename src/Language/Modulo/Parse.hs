@@ -21,6 +21,7 @@ module Language.Modulo.Parse (
   ) where
 
 import Control.Monad
+import Data.Maybe
 import Control.Applicative hiding ((<|>), optional, many)
 
 import Text.Parsec hiding (parse)
@@ -66,14 +67,18 @@ unsafeParseFile path = do
 modParser :: Parser Module
 modParser = do
     optional lspace
+
+    doc <- fmap (Doc . fromMaybe "") $ optionMaybe docComment
+    optional lspace
+    
     reserved lexer "module"
     name <- modNameParser
     llex $ char '{'
     imps <- many impParser
-    decls <- many declParser
+    docDecls <- many docDeclParser
     llex $ char '}'
-    -- TODO docs
-    return $ Module "" name imps (zip (repeat "") decls)
+    
+    return $ Module doc name imps docDecls
 
 modNameParser :: Parser ModuleName
 modNameParser = do
@@ -87,6 +92,13 @@ impParser = do
     name <- modNameParser
     semi lexer
     return (name, conv)
+
+docDeclParser :: Parser (Doc, Decl)
+docDeclParser = do
+    doc <- fmap (Doc . fromMaybe "") $ optionMaybe docComment
+    optional lspace
+    decl <- declParser
+    return $ (doc, decl)
 
 declParser :: Parser Decl
 declParser = mzero
@@ -264,6 +276,12 @@ aliasTypeParser :: Parser Type
 aliasTypeParser = do
     name <- nameParser
     return $ AliasType name
+
+
+docComment :: Parser String
+docComment  = do
+    string "/@@"
+    manyTill anyChar (try (string "@/"))
 
 -------------------------------------------------------------------------------------
 
