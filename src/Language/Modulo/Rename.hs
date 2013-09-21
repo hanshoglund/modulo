@@ -40,7 +40,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- * Returned module has no Name constructors
 --
 rename :: [Module] -> Module -> Module
-rename deps mod@(Module n is ds) = Module n is (map renameDecl ds) 
+rename deps mod@(Module doc n is ds) = Module doc n is (map (fmap renameDecl) ds) 
     where
         renameDecl (TypeDecl n t)      = TypeDecl (simplify $ qualify mod n) (fmap renameType t)
         renameDecl (FunctionDecl n t)  = FunctionDecl (simplify $ qualify mod n) (renameFunType t)
@@ -86,7 +86,7 @@ findName (m:ms) n
     | n `elem` mNs   = Just $ modName m
     | otherwise      = findName ms n
     where
-        mNs = catMaybes . map getDeclName . modDecls $ m 
+        mNs = catMaybes . map (getDeclName . snd) . modDecls $ m 
 
 
 -- If the given name is a suffix of the module name, simplify

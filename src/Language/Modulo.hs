@@ -85,6 +85,9 @@ module Language.Modulo (
         toModuleName,
         getModuleNameList,
 
+        -- ** Documentation
+        Doc,
+        
         -- ** Names
         Name(..),
         getName,
@@ -103,6 +106,7 @@ module Language.Modulo (
   ) where
 
 import Data.Ord
+import Data.String
 import Numeric.Natural
 import Foreign.C.Types      
 
@@ -112,6 +116,8 @@ import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 
 
+newtype Doc = Doc { getDoc :: String }
+    deriving (Eq, Ord, Show, IsString)
 
 -- | 
 -- A module is a named container of imports and declarations.
@@ -122,9 +128,10 @@ import qualified Data.List.NonEmpty as NonEmpty
 data Module 
     = Module 
       { 
+      modDoc     :: Doc,
       modName    :: ModuleName,                   -- ^ Name of module
       modImports :: [(ModuleName, Maybe String)], -- ^ Imports with optional import conventions
-      modDecls   :: [Decl]                        -- ^ List of declarations
+      modDecls   :: [(Doc, Decl)]                 -- ^ List of declarations
       }
     deriving (Eq, Show)
 

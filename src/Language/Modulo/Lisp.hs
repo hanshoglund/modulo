@@ -95,9 +95,9 @@ convertPackage :: LispStyle -> [Lisp]
 convertPackage st = [list [symbol "in-package", keyword (package st)]]
 
 convertTopLevel :: LispStyle -> Module -> [Lisp]
-convertTopLevel st (Module n is ds) = cds
+convertTopLevel st (Module doc n is ds) = cds
     where
-        cds = concatMap (convertDecl st) ds
+        cds = concatMap (convertDecl st . snd) ds
 
 convertDecl :: LispStyle -> Decl -> [Lisp]
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n

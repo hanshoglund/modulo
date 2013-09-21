@@ -1,5 +1,5 @@
 
-{-# LANGUAGE DisambiguateRecordFields, TypeFamilies,
+{-# LANGUAGE DisambiguateRecordFields, TypeFamilies, OverloadedStrings,
     StandaloneDeriving, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving #-}
 
 -------------------------------------------------------------------------------------
@@ -72,7 +72,8 @@ modParser = do
     imps <- many impParser
     decls <- many declParser
     llex $ char '}'
-    return $ Module name imps decls
+    -- TODO docs
+    return $ Module "" name imps (zip (repeat "") decls)
 
 modNameParser :: Parser ModuleName
 modNameParser = do

@@ -99,7 +99,8 @@ renderModuleHaskellStyle :: HaskellStyle -> Module -> HsModule
 renderModuleHaskellStyle st = convertTopLevel st
 
 convertTopLevel :: HaskellStyle -> Module -> HsModule
-convertTopLevel st (Module n is ds) = HsModule def (convertModule n) Nothing [] $ fmap (convertDecl st) ds
+convertTopLevel st (Module doc n is ds) = 
+    HsModule def (convertModule n) Nothing [] $ fmap (convertDecl st . snd) ds
 
 convertDecl :: HaskellStyle -> Decl -> HsDecl
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n
