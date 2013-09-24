@@ -22,8 +22,8 @@ module Language.Modulo.C (
         stdStyle,
         cairoStyle,
         gtkStyle,
-        -- appleStyle,
-        -- haskellStyle,
+        appleStyle,
+        haskellStyle,
         
         -- ** Conversion
         translType,
@@ -83,8 +83,8 @@ data CStyle =
         includeStyle         :: ImportStyle,          -- ^ How to write import declarations
         includeDirective     :: String,               -- ^ Import directive, usually @include@.
         guardMangler        :: [String] -> String,   -- ^ Mangler for names of header guards
-        innerHeader         :: [String] -> String -> String,   -- ^ Inner header mangler (components moduleDoc)
-        innerFooter         :: [String] -> String,   -- ^ Inner footer mangler
+        innerHeader         :: [String] -> String -> String,   -- ^ Inner header mangler (receives module name, documentation)
+        innerFooter         :: [String] -> String,   -- ^ Inner footer mangler (receives module name)
 
         -- Prefix
         typePrefixMangler   :: [String] -> String,   -- ^ Prefix for types

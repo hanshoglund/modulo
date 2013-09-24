@@ -4,8 +4,9 @@
 
 module Main where
 
-import Control.Monad (when)
+import Control.Monad (when, join)
 import Data.List (find)
+import Data.Default
 import Data.Maybe (fromMaybe, maybeToList)
 import System.IO
 import System.Exit
@@ -40,9 +41,9 @@ data ModCStyle
 data ModOpt
     = Help    
     | Version
-    | Package { getPackage :: String }
     | Lang { getLang :: ModLang }
     | Path { getPath :: [ModulePath] }
+    | LispPackage { getLispPackage :: Maybe String }
     deriving (Eq, Show)
 
 readModLang :: Maybe String -> ModOpt
@@ -65,7 +66,7 @@ readModPath = Path . maybeToList
 -- TODO accept more than one, separate by commas
 
 readPackage :: Maybe String -> ModOpt
-readPackage = Package . maybe "user" id
+readPackage = LispPackage
 
 
 version = "modulo-1.5"
@@ -81,7 +82,7 @@ options = [
     (Option ['v'] ["version"]       (NoArg Version)      "Print version and exit"),
     (Option ['L'] ["language"]      (OptArg readModLang  "LANG") "Output language"),
     (Option ['M'] ["module-path"]   (OptArg readModPath  "PATH") "Module paths"),
-    (Option []    ["lisp-package"]  (OptArg readPackage  "STRING") "Lisp package")
+    (Option []    ["lisp-package"]  (OptArg readPackage  "STRING") ("Lisp package (default: " ++ package def ++ ")"))
   ]                                          
     
 main = do
@@ -104,10 +105,12 @@ findPath opts = fmap getPath $ find isPath opts
     where                                   
         isPath (Path _) = True
         isPath _        = False
-findPackage opts = fmap getPackage $ find isPackage opts
+
+findLispPackage :: [ModOpt] -> Maybe String
+findLispPackage opts = join $ fmap getLispPackage $ find isLispPackage opts
     where                                   
-        isPackage (Package _) = True
-        isPackage _           = False
+        isLispPackage (LispPackage _) = True
+        isLispPackage _               = False
         
 -- |
 -- Run as a filter from stdin to stdout.
@@ -119,12 +122,12 @@ compileFile :: [ModOpt] -> Handle -> Handle -> IO ()
 compileFile opts input output = do
     let lang        = fromMaybe C (findLang opts)
     let paths       = fromMaybe [] (findPath opts)
-    let package     = fromMaybe "user" (findPackage opts)
+    let lispPackage = findLispPackage opts
     
     s <- hGetContents input
     let m  = unsafeParse s
     mr <-    unsafeRename paths m
-    let c  = printMod lang mr
+    let c  = printMod lispPackage lang mr
     hPutStr output c
     
     return ()
@@ -139,8 +142,16 @@ compileFile opts input output = do
             Left e -> error $ "Parse error: " ++ show e
             Right m -> m
         
-        printMod :: ModLang -> Module -> String
-        printMod C       = printModuleComm
-        printMod Lisp    = printModuleLisp
-        printMod Haskell = printModuleHaskell
+        printMod :: Maybe String -> ModLang -> Module -> String
+        printMod lp C       = printModuleComm
+        printMod lp Lisp    = printModuleLispStyle (maybeDo setP lp def)
+            where
+                setP p s = s { package = p }
+        printMod lp Haskell = printModuleHaskell
+
+
+maybeDo :: (a -> b -> b) -> Maybe a -> b -> b
+maybeDo f Nothing  = id
+maybeDo f (Just x) = f x
+
                                                  

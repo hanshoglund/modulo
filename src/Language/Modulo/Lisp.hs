@@ -40,14 +40,16 @@ import qualified Data.List as List
 
 data LispStyle =
     LispStyle {
-        cStyle :: CStyle,                   -- ^ For generating foreign declarations
-        package :: String,                  -- ^ Package in which to generate definitions
-        safeOpaque :: Bool                  -- ^ If true, generate a wrapper class for each opaque type.
+        cStyle :: CStyle,                       -- ^ For generating foreign declarations
+        package :: String,                      -- ^ Package in which to generate definitions
+        prefixMangler :: [String] -> [String],
+        safeOpaque :: Bool                      -- ^ If true, generate a wrapper class for each opaque type.
     }
 
 stdLispStyle = LispStyle {       
     cStyle          = stdStyle,
     package         = "cl-user",
+    prefixMangler   = tail,
     safeOpaque      = True
     }
 
@@ -141,24 +143,24 @@ declOpaque st n = [defType, defParse] ++ if (safeOpaque st) then [defClass, defI
                             list [symbol "x", list [symbol "type", metaName]],
                             list [symbol "make-instance", qualTypeName, keyword slot, symbol "x"]]
 
-        slot            = withSuffix "-ptr" $ convertName n
-        qualMetaName    = symbol $ withPrefix "'" $ withSuffix "-type" $ convertName n                                                       
-        metaName        = symbol $ withSuffix "-type" $ convertName n                                                       
-        qualTypeName    = symbol $ withPrefix "'" $ convertName n
-        typeName        = symbol $ convertName n
+        slot            = withSuffix "-ptr" $ convertName st n
+        qualMetaName    = symbol $ withPrefix "'" $ withSuffix "-type" $ convertName st n                                                       
+        metaName        = symbol $ withSuffix "-type" $ convertName st n                                                       
+        qualTypeName    = symbol $ withPrefix "'" $ convertName st n
+        typeName        = symbol $ convertName st n
         
 
 -- return $ list [symbol "defctype", symbolName n, keyword "pointer"]
 
 
 declType :: LispStyle -> Name -> Type -> [Lisp]             
-declType st n t = return $ list [symbol "defctype", symbolName n, convertType st t]
+declType st n t = return $ list [symbol "defctype", symbolName st n, convertType st t]
 
 declFun :: LispStyle -> Name -> FunType -> [Lisp]             
 declFun st n (Function as r) = 
     return $ list $ [symbol "defcfun", list [name, cname], ret] ++ args
     where
-        name        = symbolName n
+        name        = symbolName st n
         ret         = convertType st r
         cname       = string $ convertCFunName (cStyle st) n
         argNames    = map (symbol . return . chr) [97..(97+25)]
@@ -174,7 +176,7 @@ convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: LispStyle -> Name -> Lisp
-convertAlias st n = symbolName n
+convertAlias st n = symbolName st n
 
 convertPrimType :: LispStyle -> PrimType -> Lisp
 convertPrimType st Bool       = keyword "boolean"
@@ -239,23 +241,18 @@ symbol = Symbol . pack
 keyword :: String -> Lisp
 keyword x = Symbol (pack $ ":" ++ x)
 
-stringName :: Name -> Lisp
-stringName = string . convertName {- getName-}
+stringName :: LispStyle -> Name -> Lisp
+stringName st = string . convertName st {- getName-}
 
-symbolName :: Name -> Lisp
-symbolName = symbol . convertName {- getName-}
+symbolName :: LispStyle -> Name -> Lisp
+symbolName st = symbol . convertName st {- getName-}
 
-keywordName :: Name -> Lisp
-keywordName = keyword . convertName {- getName-}
+keywordName :: LispStyle -> Name -> Lisp
+keywordName st = keyword . convertName st {- getName-}
 
--- TODO there should be in the style
-convertName :: Name -> String
-convertName (Name n)    = {-withPrefix "#" $ -} toLowerString $ concatSep "-" (unmangle n)
-convertName (QName m n) = {-withPrefix "#" $ -} toLowerString $ concatSep "-" (stripPackage (getModuleNameList m) ++ unmangle n)
-
-stripPackage :: [String] -> [String]
-stripPackage = tail
--- TODO only strip prefix that matches (unmangle (package st))
+convertName :: LispStyle -> Name -> String
+convertName st (Name n)    = toLowerString $ concatSep "-" $ unmangle n
+convertName st (QName m n) = toLowerString $ concatSep "-" $ (prefixMangler st) (getModuleNameList m) ++ unmangle n
 
 convertCTypeName :: CStyle -> Name -> String
 convertCTypeName st n = getName (translType st n)
