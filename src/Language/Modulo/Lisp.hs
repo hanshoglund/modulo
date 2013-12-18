@@ -183,7 +183,7 @@ convertAlias st n = symbolName st n
 convertPrimType :: LispStyle -> PrimType -> Lisp
 convertPrimType st Bool       = case primBoolType st of
     Nothing             -> keyword "boolean"
-    Just primBoolType   -> list [symbol "boolean", convertPrimType st primBoolType]
+    Just primBoolType   -> list [keyword "boolean", convertPrimType st primBoolType]
 convertPrimType st Void       = keyword "void"
 convertPrimType st Char       = keyword "char" 
 convertPrimType st Short      = keyword "short" 
