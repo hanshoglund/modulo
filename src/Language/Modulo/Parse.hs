@@ -17,6 +17,8 @@
 module Language.Modulo.Parse (
         parse,
         parseName,
+        parsePrimType,
+        parsePrimTypeMaybe,
         unsafeParseFile
   ) where
 
@@ -46,6 +48,20 @@ parse = runParser modParser () ""
 --
 parseName :: String -> Either ParseError Name
 parseName = runParser nameParser () ""
+
+-- |
+-- Parse a primitive type, returning an error if unsuccessful.
+--
+parsePrimType :: String -> Either ParseError PrimType
+parsePrimType = fmap unPrimType . runParser primTypeParser () ""
+    where
+        unPrimType (PrimType x) = x
+
+-- |
+-- Parse a primitive type, returning an error if unsuccessful.
+--
+parsePrimTypeMaybe :: String -> Maybe PrimType
+parsePrimTypeMaybe = eitherToMaybe . parsePrimType
 
 -- |
 -- Parse a module description from the given file, or fail if unsuccessful.
@@ -353,3 +369,5 @@ single x = [x]
 
 notSupported x = error $ "Not supported yet: " ++ x
 
+eitherToMaybe (Right x) = Just x
+eitherToMaybe (Left _)  = Nothing

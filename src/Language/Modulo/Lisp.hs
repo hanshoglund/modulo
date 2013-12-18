@@ -40,17 +40,19 @@ import qualified Data.List as List
 
 data LispStyle =
     LispStyle {
-        cStyle :: CStyle,                       -- ^ For generating foreign declarations
-        package :: String,                      -- ^ Package in which to generate definitions
-        prefixMangler :: [String] -> [String],
-        safeOpaque :: Bool                      -- ^ If true, generate a wrapper class for each opaque type.
+        cStyle          :: CStyle,                  -- ^ For generating foreign declarations
+        package         :: String,                  -- ^ Package in which to generate definitions
+        prefixMangler   :: [String] -> [String],    -- ^ A mangler for prefixes.
+        safeOpaque      :: Bool,                    -- ^ If true, generate a wrapper class for each opaque type.
+        primBoolType    :: Maybe PrimType           -- ^ Type of primitive booleans (default Int).
     }
 
 stdLispStyle = LispStyle {       
     cStyle          = stdStyle,
     package         = "cl-user",
     prefixMangler   = tail,
-    safeOpaque      = True
+    safeOpaque      = True,
+    primBoolType    = Nothing
     }
 
 -- | Default instance using 'stdStyle'.
@@ -179,7 +181,9 @@ convertAlias :: LispStyle -> Name -> Lisp
 convertAlias st n = symbolName st n
 
 convertPrimType :: LispStyle -> PrimType -> Lisp
-convertPrimType st Bool       = keyword "boolean"
+convertPrimType st Bool       = case primBoolType st of
+    Nothing             -> keyword "boolean"
+    Just primBoolType   -> list [symbol "boolean", convertPrimType st primBoolType]
 convertPrimType st Void       = keyword "void"
 convertPrimType st Char       = keyword "char" 
 convertPrimType st Short      = keyword "short" 

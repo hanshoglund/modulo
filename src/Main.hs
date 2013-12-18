@@ -44,6 +44,7 @@ data ModOpt
     | Lang { getLang :: ModLang }
     | Path { getPath :: [ModulePath] }
     | LispPackage { getLispPackage :: Maybe String }
+    | LispPrimBool { getLispPrimBool :: Maybe PrimType }
     deriving (Eq, Show)
 
 readModLang :: Maybe String -> ModOpt
@@ -68,6 +69,9 @@ readModPath = Path . maybeToList
 readPackage :: Maybe String -> ModOpt
 readPackage = LispPackage
 
+readPrimBool :: Maybe String -> ModOpt
+readPrimBool = LispPrimBool . (=<<) parsePrimTypeMaybe
+
 
 version = "modulo-1.5"
 header  = "Usage: modulo [options]\n" ++
@@ -82,7 +86,8 @@ options = [
     (Option ['v'] ["version"]       (NoArg Version)      "Print version and exit"),
     (Option ['L'] ["language"]      (OptArg readModLang  "LANG") "Output language"),
     (Option ['M'] ["module-path"]   (OptArg readModPath  "PATH") "Module paths"),
-    (Option []    ["lisp-package"]  (OptArg readPackage  "STRING") ("Lisp package (default: " ++ package def ++ ")"))
+    (Option []    ["lisp-package"]  (OptArg readPackage  "STRING") ("Lisp package (default: " ++ package def ++ ")")),
+    (Option []    ["lisp-primitive-bool"]  (OptArg readPrimBool  "STRING") ("Optional primitive boolean type (Char|Int|UChar|UInt...)"))
   ]                                          
     
 main = do
@@ -111,6 +116,12 @@ findLispPackage opts = join $ fmap getLispPackage $ find isLispPackage opts
     where                                   
         isLispPackage (LispPackage _) = True
         isLispPackage _               = False
+
+findLispPrimBool :: [ModOpt] -> Maybe PrimType
+findLispPrimBool opts = join $ fmap getLispPrimBool $ find isLispPrimBool opts
+    where                                   
+        isLispPrimBool (LispPrimBool _) = True
+        isLispPrimBool _               = False
         
 -- |
 -- Run as a filter from stdin to stdout.
@@ -123,11 +134,12 @@ compileFile opts input output = do
     let lang        = fromMaybe C (findLang opts)
     let paths       = fromMaybe [] (findPath opts)
     let lispPackage = findLispPackage opts
+    let lispPrimBool = findLispPrimBool opts
     
     s <- hGetContents input
     let m  = unsafeParse s
     mr <-    unsafeRename paths m
-    let c  = printMod lispPackage lang mr
+    let c  = printMod lispPackage lispPrimBool lang mr
     hPutStr output c
     
     return ()
@@ -142,12 +154,13 @@ compileFile opts input output = do
             Left e -> error $ "Parse error: " ++ show e
             Right m -> m
         
-        printMod :: Maybe String -> ModLang -> Module -> String
-        printMod lp C       = printModuleComm
-        printMod lp Lisp    = printModuleLispStyle (maybeDo setP lp def)
+        printMod :: Maybe String -> Maybe PrimType -> ModLang -> Module -> String
+        printMod lp lpm C       = printModuleComm
+        printMod lp lpm Lisp    = printModuleLispStyle $ maybeDo setP lp $ setPM lpm $ def
             where
-                setP p s = s { package = p }
-        printMod lp Haskell = printModuleHaskell
+                setP  p  s = s { package = p }
+                setPM pm s = s { primBoolType = pm }
+        printMod lp lpm Haskell = printModuleHaskell
 
 
 maybeDo :: (a -> b -> b) -> Maybe a -> b -> b
