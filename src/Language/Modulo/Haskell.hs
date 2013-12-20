@@ -100,7 +100,20 @@ renderModuleHaskellStyle st = convertTopLevel st
 
 convertTopLevel :: HaskellStyle -> Module -> HsModule
 convertTopLevel st (Module doc n is ds) = 
-    HsModule def (convertModule n) Nothing [] $ concatMap (convertDecl st . snd) ds
+    -- TODO docs
+    -- TODO nice export spec (excluding opaque struct types etc)
+    HsModule def (convertModule n) Nothing imps  decls
+    where
+        imps  = standardForeignImports ++ concatMap (uncurry convertImport) is
+        decls = concatMap (convertDecl st . snd) ds
+
+convertImport :: ModuleName -> Maybe String -> [HsImportDecl]
+convertImport _ (Just "C")  = [] -- Skip C imports
+convertImport n _           = [HsImportDecl def (convertModule n) False Nothing Nothing]
+
+standardForeignImports = [
+    HsImportDecl def (Hs.Module "Foreign")   False Nothing Nothing,
+    HsImportDecl def (Hs.Module "Foreign.C") False Nothing Nothing]
 
 convertDecl :: HaskellStyle -> Decl -> [HsDecl]
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n
