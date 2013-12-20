@@ -111,19 +111,27 @@ convertDecl st (ConstDecl n v t)     = notSupported "Constants"       -- T n; or
 convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or T n = v;
  
 declOpaque :: HaskellStyle -> Name -> HsDecl             
-declOpaque st (Name n)    = HsDataDecl def [] (HsIdent n) [] [] []
+declOpaque st (Name n)    = error "Expected qualified name"
 declOpaque st (QName _ n) = HsDataDecl def [] (HsIdent n) [] [] []
 
 declType :: HaskellStyle -> Name -> Type -> HsDecl             
-declType st n t = HsTypeDecl def (HsIdent $ getName n) [] (convertType st t)
+declType st n t = HsTypeDecl def (HsIdent $ getNameEnd n) [] (convertType st t)
 
+-- TODO check purity properties and add IO if needed
 declFun :: HaskellStyle -> Name -> FunType -> HsDecl             
-declFun st n t = HsForeignImport def "ccall" HsUnsafe cName hsName hsType
+declFun st n t = HsForeignImport def "ccall" HsUnsafe cName hsName (addIO hsType)
     where
-        cName   = getName (translFun (cStyle st) n)
-        hsName  = HsIdent (getName n)
+        cName   = getName (translFun (cStyle st) n) -- Always returns an unqualified name (TODO document in C module)
+        hsName  = HsIdent $ getNameEnd n
         hsType  = convertFunType st t
 
+addIO (HsTyFun a b) = HsTyFun a (addIO b)
+addIO b             = HsTyApp (HsTyVar $ HsIdent "IO") b
+
+-- TODO move
+-- | Returns the last part of an unqualified name.
+getNameEnd (QName _ x) = x
+getNameEnd _ = error "Expected qualified name"
 
 -- TODO partial on (CompType (Struct..)), (for struct, union and bitfield)
 convertType :: HaskellStyle -> Type -> HsType
@@ -134,8 +142,9 @@ convertType st (FunType t)   = convertFunType st t
 convertType st (CompType t)  = convertCompType st t
 
 convertAlias :: HaskellStyle -> Name -> HsType 
-convertAlias st (Name n)    = HsTyCon $ (UnQual (HsIdent n))
-convertAlias st (QName m n) = HsTyCon $ (Qual (convertModule m) (HsIdent n))
+convertAlias st n = HsTyCon $ UnQual $ HsIdent $ getNameEnd n
+-- convertAlias st (Name n)    = HsTyCon $ (UnQual (HsIdent n))
+-- convertAlias st (QName m n) = HsTyCon $ (Qual (convertModule m) (HsIdent n))
 
 convertPrimType :: HaskellStyle -> PrimType -> HsType
 convertPrimType st Bool       = HsTyCon (UnQual "CInt")
@@ -180,9 +189,9 @@ convertFunType st = go
 
 convertCompType :: HaskellStyle -> CompType -> HsType
 convertCompType st (Enum as)       = HsTyCon (UnQual "CInt")
-convertCompType st (Struct as)     = notSupported "Compound types with Haskell"
-convertCompType st (Union as)      = notSupported "Compound types with Haskell"
-convertCompType st (BitField as)   = notSupported "Compound types with Haskell"
+convertCompType st (Struct as)     = convertType st voidPtr
+convertCompType st (Union as)      = convertType st voidPtr
+convertCompType st (BitField as)   = notSupported "Haskell: bitfields"
 
 instance IsString HsName where
     fromString = HsIdent
@@ -197,3 +206,6 @@ convertModule :: ModuleName -> Hs.Module
 convertModule = Hs.Module . concatSep "." . getModuleNameList
 
 notSupported x = error $ "Not supported yet: " ++ x
+
+-- TODO move
+voidPtr = RefType (Pointer $ PrimType Void)

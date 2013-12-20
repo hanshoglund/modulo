@@ -267,6 +267,7 @@ convertCFunName st n = getName (translFun st n)
 -- TODO type fun const global enumF structF unionF
 
 
+-- TODO move
 voidPtr = RefType (Pointer $ PrimType Void)
 
 
