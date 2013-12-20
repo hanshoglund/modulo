@@ -100,19 +100,23 @@ renderModuleHaskellStyle st = convertTopLevel st
 
 convertTopLevel :: HaskellStyle -> Module -> HsModule
 convertTopLevel st (Module doc n is ds) = 
-    HsModule def (convertModule n) Nothing [] $ fmap (convertDecl st . snd) ds
+    HsModule def (convertModule n) Nothing [] $ concatMap (convertDecl st . snd) ds
 
-convertDecl :: HaskellStyle -> Decl -> HsDecl
+convertDecl :: HaskellStyle -> Decl -> [HsDecl]
 convertDecl st (TypeDecl n Nothing)  = declOpaque st n
-convertDecl st (TypeDecl n (Just t)) = declType st n t                -- typedef T N;
-convertDecl st (FunctionDecl n t)    = declFun st n t                 -- T n (as);
-convertDecl st (TagDecl t)           = notSupported "Tag decls"       -- T;
-convertDecl st (ConstDecl n v t)     = notSupported "Constants"       -- T n; or T n = v;
-convertDecl st (GlobalDecl n v t)    = notSupported "Globals"         -- T n; or T n = v;
+-- Uses return here as only opaque needs to emit an extra declaration
+-- We might change the types of declType, declFun etc instead
+convertDecl st (TypeDecl n (Just t)) = return $ declType st n t                -- typedef T N;
+convertDecl st (FunctionDecl n t)    = return $ declFun st n t                 -- T n (as);
+convertDecl st (TagDecl t)           = return $ notSupported "Tag decls"       -- T;
+convertDecl st (ConstDecl n v t)     = return $ notSupported "Constants"       -- T n; or T n = v;
+convertDecl st (GlobalDecl n v t)    = return $ notSupported "Globals"         -- T n; or T n = v;
  
-declOpaque :: HaskellStyle -> Name -> HsDecl             
+declOpaque :: HaskellStyle -> Name -> [HsDecl]             
 declOpaque st (Name n)    = error "Expected qualified name"
-declOpaque st (QName _ n) = HsDataDecl def [] (HsIdent n) [] [] []
+declOpaque st (QName _ n) = [HsDataDecl def [] (HsIdent $ n ++ "_") [] [] [], 
+    HsTypeDecl def (HsIdent $ n) [] $
+        HsTyCon (UnQual "Ptr") `HsTyApp` HsTyCon (UnQual (HsIdent $ n ++ "_"))]
 
 declType :: HaskellStyle -> Name -> Type -> HsDecl             
 declType st n t = HsTypeDecl def (HsIdent $ getNameEnd n) [] (convertType st t)
