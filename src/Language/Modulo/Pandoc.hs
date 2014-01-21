@@ -41,6 +41,7 @@ import Control.Monad
 import System.Directory
 import System.Process
 import Text.Pandoc.Options
+import Text.Pandoc.Templates
 import Language.Modulo.Load
 import Language.Modulo.Parse
 import Language.Modulo.Rename
@@ -129,7 +130,12 @@ document mpaths = fmap renderModulePandoc . unsafeRename mpaths . unsafeParse
 documentFiles :: [ModulePath] -> FilePath -> IO ()
 documentFiles mpaths path = do
   paths <- listFilesMatching path (List.isSuffixOf ".module")
-  strs <- mapM (\path -> (return . writeHtmlString def) =<< document mpaths =<< readFile path) paths
+  Right templ <- getDefaultTemplate Nothing "html5"
+  strs <- mapM (\path -> (return . writeHtmlString def {
+      writerTemplate = templ,
+      writerStandalone = True,
+      writerTableOfContents = True
+    }) =<< document mpaths =<< readFile path) paths
   writeFile "test.html" $ List.intercalate "\n" strs
   return ()
 
