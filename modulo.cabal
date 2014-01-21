@@ -32,7 +32,9 @@ library
         prettify        >= 1.0 && < 2,
         language-c, 
         haskell-src     == 1.0.1.5,
-        atto-lisp
+        atto-lisp,
+        
+        pandoc          == 1.11.1
     hs-source-dirs: src
     exposed-modules:
         Language.Modulo
