@@ -51,6 +51,7 @@ import qualified Data.List as List
 import Text.Pandoc.Definition
 import Text.Pandoc.Writers.HTML
 import Text.Pandoc.Writers.LaTeX
+import Text.Pandoc.Readers.Markdown
 
 data PandocStyle = PandocStyle
   deriving (Eq, Ord, Show)
@@ -58,6 +59,7 @@ data PandocStyle = PandocStyle
 stdMeta = Meta [] [] []
 blockToPandoc = Pandoc stdMeta . return
 blocksToPandoc = Pandoc stdMeta
+mdStringToPandoc = readMarkdown def
 instance Semigroup Pandoc where
   (<>) = mappend
 instance Monoid Pandoc where
@@ -87,11 +89,9 @@ convertImport st name conv = blockToPandoc $ CodeBlock nullAttr $ "import " ++ s
 convertDocDecl :: PandocStyle -> Doc -> Decl -> Pandoc
 convertDocDecl st doc decl = blocksToPandoc [
   CodeBlock css $ unname $ getDeclName decl
-  ,
-  Para $ return $ Str $ getDoc $ doc
-
-
   ]
+  <>
+  (mdStringToPandoc $ getDoc $ doc)
   where
     -- unname = maybe "" (show . C.translFun def)
     -- unname = maybe "" getShortName
