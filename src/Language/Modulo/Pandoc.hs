@@ -72,7 +72,7 @@ renderModulePandoc = renderModulePandocStyle stdPandocStyle
 
 renderModulePandocStyle :: PandocStyle -> Module -> Pandoc
 renderModulePandocStyle st mod = Pandoc stdMeta [
-  Header 1 nullAttr [Str (show $ modName mod)]
+  Header 2 ("", [], [("id",show $ modName mod)]) [Str (show $ modName mod)]
   -- CodeBlock nullAttr "import X.X.X",
   -- CodeBlock nullAttr "foo : Ptr -> Ptr"
   ] <> is <> ds
@@ -106,7 +106,7 @@ convertDocDecl st doc decl = blocksToPandoc [
         argNames2 (Function as r) = fmap showT as ++ [showT r]
         showT = show . Lisp.convertType def
 
-    css = (".codeName", [], [("style", "background: #cfcefe")])
+    css = (".codeName", [], [("", "")])
     
     getShortName (QName _ n) = n
 
@@ -125,19 +125,47 @@ main = documentFiles ["/Users/hans/audio/modules"] "/Users/hans/audio/modules"
 -- main = documentFile ["/Users/hans/audio/modules"] "/Users/hans/audio/modules/Fa/Signal.module"
 
 document :: [ModulePath] -> String -> IO Pandoc
-document mpaths = fmap renderModulePandoc . unsafeRename mpaths . unsafeParse
+document mpaths str = do
+  mod <- unsafeRename mpaths . unsafeParse $ str
+  putStr $ "Documenting " ++ show (modName mod) ++ "\n"
+  return $ renderModulePandoc mod
 
 documentFiles :: [ModulePath] -> FilePath -> IO ()
 documentFiles mpaths path = do
   paths <- listFilesMatching path (List.isSuffixOf ".module")
-  Right templ <- getDefaultTemplate Nothing "html5"
-  strs <- mapM (\path -> (return . writeHtmlString def {
-      writerTemplate = templ,
-      writerStandalone = True,
-      writerTableOfContents = True
-    }) =<< document mpaths =<< readFile path) paths
-  writeFile "test.html" $ List.intercalate "\n" strs
+  pandocs <- mapM (\path -> document mpaths =<< readFile path) paths
+  strs <- toHtmlStr $ mconcat pandocs
+  writeFile "test.html" $ strs
   return ()
+    where
+      cssBody = mempty
+        <> "body > pre {                                      "
+        <> "    padding:                20px;                 "
+        <> "    margin-top:             15px;                 "
+        <> "    margin-bottom:          15px;                 "
+        <> "    background:             #faffff;              "
+        <> "    border-radius:          12px;                 "
+        <> "    border:                 1px solid LightGrey;  "
+        <> "    box-shadow:             3px 3px 5px #eee;     "
+        <> "    overflow:               auto;                 "
+        <> "}"
+        <> ""
+        <> ""
+        <> ""
+        <> ""
+        <> ""
+        <> ""
+        <> ""
+        <> ""
+      
+      toHtmlStr :: Pandoc -> IO String
+      toHtmlStr str = do
+        Right templ <- getDefaultTemplate Nothing "html"
+        return $ flip writeHtmlString str $ def {
+          writerTemplate = templ,
+          writerStandalone = True,
+          writerTableOfContents = True,
+          writerVariables = [("highlighting-css", cssBody)] }
 
 documentFile :: [ModulePath] -> FilePath -> IO ()
 documentFile mpaths path = do                 
