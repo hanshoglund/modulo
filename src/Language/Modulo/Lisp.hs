@@ -22,7 +22,10 @@ module Language.Modulo.Lisp (
         printModuleLisp,
         renderModuleLisp,
         printModuleLispStyle,
-        renderModuleLispStyle
+        renderModuleLispStyle,
+        
+        -- ** Names
+        convertName,
   ) where
 
 import Data.Default

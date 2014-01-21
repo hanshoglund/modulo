@@ -33,7 +33,8 @@ library
         language-c, 
         haskell-src     == 1.0.1.5,
         atto-lisp,
-        
+
+        pandoc-types    == 1.10,
         pandoc          == 1.11.1
     hs-source-dirs: src
     exposed-modules:
@@ -43,6 +44,7 @@ library
         Language.Modulo.Lisp
         Language.Modulo.Haskell
         Language.Modulo.JavaScript
+        Language.Modulo.Pandoc
 
         Language.Modulo.Load
         Language.Modulo.Parse
