@@ -35,7 +35,9 @@ library
         atto-lisp,
 
         pandoc-types    == 1.10,
-        pandoc          == 1.11.1
+        pandoc          == 1.11.1,
+        process,
+        directory
     hs-source-dirs: src
     exposed-modules:
         Language.Modulo

@@ -36,7 +36,9 @@ import qualified Language.Modulo.C as C
 import qualified Language.Modulo.Haskell as Haskell
 import qualified Language.Modulo.Lisp as Lisp
 
--- DEBUG
+-- DEBUG        
+import Control.Monad
+import System.Directory
 import System.Process
 import Text.Pandoc.Options
 import Language.Modulo.Load
@@ -83,38 +85,97 @@ convertImport st name conv = blockToPandoc $ CodeBlock nullAttr $ "import " ++ s
 
 convertDocDecl :: PandocStyle -> Doc -> Decl -> Pandoc
 convertDocDecl st doc decl = blocksToPandoc [
-  CodeBlock css $ unname $ getDeclName decl,
+  CodeBlock css $ unname $ getDeclName decl
+  ,
   Para $ return $ Str $ getDoc $ doc
+
+
   ]
   where
-    unname = maybe "" (Lisp.convertName def)
+    -- unname = maybe "" (show . C.translFun def)
     -- unname = maybe "" getShortName
+    unname = if isTypeDecl decl 
+      then ("(defclass " ++) . (++ " ())") . maybe "" (Lisp.convertName def) 
+      else (\x -> "(defun " ++ x ++ " (" ++ List.intercalate " " (argNames decl) ++ "))")    . maybe "" (Lisp.convertName def)
+      where
+        isTypeDecl (TypeDecl _ _) = True
+        isTypeDecl _              = False
 
-    css = (".codeName", [], [("style", "background: #efeeee")])
+        argNames (FunctionDecl _ ft) = argNames2 ft
+        argNames2 (Function as r) = fmap showT as ++ [showT r]
+        showT = show . Lisp.convertType def
+
+    css = (".codeName", [], [("style", "background: #cfcefe")])
     
     getShortName (QName _ n) = n
 
 
-main = do                 
-  str <-  readFile "/Users/hans/audio/modules/Fa/Signal.module"
-  let m  = unsafeParse str
-  mr <-    unsafeRename ["/Users/hans/audio/modules"] m
-  let pd = renderModulePandoc mr
-  -- print pd
-  writeFile "test.html" $ writeHtmlString def pd                 
-  
-  template <- getDefaultTemplateSource Nothing "latex"
-  writeFile "test.tex" $ writeLaTeX (def {writerStandalone = True}) pd
-  -- system "pdflatex test.tex"
 
-  where
-    unsafeRename :: [ModulePath] -> Module -> IO Module
-    unsafeRename paths m = do
-        deps <- loadDependencies (withStdModulePaths paths) m
-        return $ rename deps m
-        
-    unsafeParse :: String -> Module
-    unsafeParse s = case (parse s) of
-        Left e -> error $ "Parse error: " ++ show e
-        Right m -> m
+  
+-- allFilesMatching :: FilePath -> (FilePath -> Bool) -> IO [FilePath]
+
+
+
+
+
+
+
+main = documentFiles ["/Users/hans/audio/modules"] "/Users/hans/audio/modules"
+-- main = documentFile ["/Users/hans/audio/modules"] "/Users/hans/audio/modules/Fa/Signal.module"
+
+document :: [ModulePath] -> String -> IO Pandoc
+document mpaths = fmap renderModulePandoc . unsafeRename mpaths . unsafeParse
+
+documentFiles :: [ModulePath] -> FilePath -> IO ()
+documentFiles mpaths path = do
+  paths <- listFilesMatching path (List.isSuffixOf ".module")
+  strs <- mapM (\path -> (return . writeHtmlString def) =<< document mpaths =<< readFile path) paths
+  writeFile "test.html" $ List.intercalate "\n" strs
+  return ()
+
+documentFile :: [ModulePath] -> FilePath -> IO ()
+documentFile mpaths path = do                 
+  pd <- document mpaths =<< readFile path
+  writeFile "test.html" $ writeHtmlString def pd                 
+
+
+
+
+unsafeRename :: [ModulePath] -> Module -> IO Module
+unsafeRename paths m = do
+    deps <- loadDependencies (withStdModulePaths paths) m
+    return $ rename deps m
     
+unsafeParse :: String -> Module
+unsafeParse s = case (parse s) of
+    Left e -> error $ "Parse error: " ++ show e
+    Right m -> m
+    
+
+listFilesMatching :: FilePath -> (FilePath -> Bool) -> IO [FilePath]
+listFilesMatching path pred = fmap (filter pred) $ listFilesR path
+
+listFilesR :: FilePath -> IO [FilePath]
+listFilesR = listFilesR' . (<> "/")
+
+listFilesR' path = let
+    isDODD :: String -> Bool
+    isDODD f = not $ (List.isSuffixOf "/." f) || (List.isSuffixOf "/.." f)
+    -- isDODD _ = True
+
+    listDirs :: [FilePath] -> IO [FilePath]
+    listDirs = filterM doesDirectoryExist . fmap (<> "/")
+
+    listFiles :: [FilePath] -> IO [FilePath]
+    listFiles = filterM doesFileExist
+
+    joinFN :: String -> String -> FilePath
+    joinFN p1 p2 = mconcat [p1, p2]
+
+    in do
+        allfiles <- getDirectoryContents path
+        no_dots <- filterM (return . isDODD) (map (joinFN path) allfiles)
+        dirs <- listDirs no_dots
+        subdirfiles <- (mapM (listFilesR'{- . (<> "/")-}) dirs >>= return . concat)
+        files <- listFiles no_dots
+        return $ files ++ subdirfiles  

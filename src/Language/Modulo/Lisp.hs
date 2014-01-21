@@ -26,6 +26,7 @@ module Language.Modulo.Lisp (
         
         -- ** Names
         convertName,
+        convertType,
   ) where
 
 import Data.Default
@@ -220,7 +221,8 @@ convertPrimType st SChar      = notSupported "Signed chars with Lisp"
 
 convertRefType :: LispStyle -> RefType -> Lisp
 convertRefType st (Pointer t) = list [keyword "pointer", convertType st t]
-convertRefType st (Array t n) = notSupported "Array types with Lisp"
+convertRefType st (Array t n) = convertRefType st (Pointer t)
+-- convertRefType st (Array t n) = notSupported "Array types with Lisp"
 -- TODO
 
 convertFunType :: LispStyle -> FunType -> Lisp
