@@ -49,7 +49,7 @@ rename deps mod@(Module doc n is ds) = Module doc n is (map (fmap renameDecl) ds
         renameDecl (GlobalDecl n v t)  = GlobalDecl (simplify $ qualify mod n) v (renameType t)
 
         renameType (PrimType t)  = PrimType t
-        renameType (AliasType n) = AliasType $ simplify $ resolveName (mod : deps) n
+        renameType (AliasType n) = AliasType $ simplify $ resolveName mod (mod : deps) n
         renameType (RefType t)   = RefType   $ renameRefType t
         renameType (FunType t)   = FunType   $ renameFunType t
         renameType (CompType t)  = CompType  $ renameCompType t
@@ -71,10 +71,10 @@ qualify :: Module -> Name -> Name
 qualify m (Name n)    = QName (modName m) n
 qualify _ (QName _ _) = error "Name already qualified"
 
-resolveName :: [Module] -> Name -> Name
-resolveName ms (QName m n) = QName m n
-resolveName ms n@(Name n') = case findName ms n of
-    Nothing -> error $ "Could not find: " ++ show n'
+resolveName :: Module -> [Module] -> Name -> Name
+resolveName errorMsgMod deps (QName m n) = QName m n
+resolveName errorMsgMod deps n@(Name n') = case findName deps n of
+    Nothing -> error $ "Could not find '" ++ show n' ++ "' in module " ++ show (modName errorMsgMod)
     Just m  -> QName m n'
         
 -- | 
