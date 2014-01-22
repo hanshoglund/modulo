@@ -27,6 +27,7 @@ import Control.Arrow
 import Data.Monoid
 import Data.Default
 import Data.Maybe
+import qualified Data.List as List
 import Control.Applicative hiding ((<|>), optional, many)
 
 import Text.Parsec hiding (parse)
@@ -91,13 +92,18 @@ modParser = do
     optional lspace
     
     reserved lexer "module"
+    optStr <- optionMaybe lstr
     name <- modNameParser
     llex $ char '{'
     imps <- many impParser
     docDecls <- many docDeclParser
     llex $ char '}'
-    
-    return $ Module name def doc imps docDecls
+
+    -- TODO use opts        
+    let opt = def { 
+        optTransient = List.isInfixOf "transient" (fromMaybe "" optStr) 
+        }
+    return $ Module name opt doc imps docDecls
 
 modNameParser :: Parser ModuleName
 modNameParser = do

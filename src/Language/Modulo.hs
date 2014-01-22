@@ -122,12 +122,12 @@ newtype Doc = Doc { getDoc :: String }
     deriving (Eq, Ord, Show, IsString)
 
 data ModuleOptions = ModuleOptions {
-        propTransient :: Bool -- ^ If true, this module does not incur any C prefix.
+        optTransient :: Bool -- ^ If true, this module does not incur any C prefix.
     }
     deriving (Eq, Ord, Show)
 
 instance Default ModuleOptions where
-    def = ModuleOptions { propTransient = False }
+    def = ModuleOptions { optTransient = False }
 
 
 -- | 
