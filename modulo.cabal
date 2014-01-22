@@ -1,6 +1,6 @@
 
 name:               modulo
-version:            1.7.2
+version:            1.7.3
 cabal-version:      >= 1.6
 author:             Hans Hoglund
 maintainer:         Hans Hoglund <hans@hanshoglund.se>
