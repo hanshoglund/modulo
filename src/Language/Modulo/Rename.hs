@@ -69,9 +69,14 @@ rename deps mod@(Module n opt doc is ds) = Module n opt doc is (map (fmap rename
         renameCompType (BitField ns) = notSupported "Bit-fields"
 
 qualify :: Module -> Name -> Name
-qualify m (Name n)    = QName (modName m) n
 qualify _ (QName _ _) = error "Name already qualified"
+qualify m (Name n)    = if isTrans m then QName (modNameInit $ modName m) n else QName (modName m) n
+    where                                                      
+        -- TODO consolidate (see below)
+        modNameInit = toModuleName . init . getModuleNameList
+        isTrans     = optTransient . modOptions
 
+-- | Search for a name among modules, fail if not found.
 resolveName :: Module -> [Module] -> Name -> Name
 resolveName errorMsgMod deps (QName m n) = QName m n
 resolveName errorMsgMod deps n@(Name n') = case findName deps n of
@@ -84,9 +89,11 @@ resolveName errorMsgMod deps n@(Name n') = case findName deps n of
 findName :: [Module] -> Name -> Maybe ModuleName
 findName []     n = Nothing
 findName (m:ms) n
-    | n `elem` mNs   = Just $ modName m
+    | n `elem` mNs   = if isTrans m then Just (modNameInit $ modName m) else Just (modName m)
     | otherwise      = findName ms n
-    where
+    where                                      
+        modNameInit = toModuleName . init . getModuleNameList
+        isTrans = optTransient . modOptions
         mNs = catMaybes . map (getDeclName . snd) . modDecls $ m 
 
 
