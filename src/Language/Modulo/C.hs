@@ -659,7 +659,7 @@ convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] de
     where
         (typ, decls) = convertType st r
         args :: [CDecl]
-        args    = map (\(_,t) -> declParam st Nothing t) $ as
+        args    = map (\(n,t) -> declParam st n t) $ as
         -- TODO #34 use name
 
 convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])

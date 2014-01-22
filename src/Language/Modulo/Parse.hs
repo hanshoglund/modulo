@@ -23,6 +23,8 @@ module Language.Modulo.Parse (
   ) where
 
 import Control.Monad
+import Control.Arrow
+import Data.Monoid
 import Data.Maybe
 import Control.Applicative hiding ((<|>), optional, many)
 
@@ -170,56 +172,60 @@ opaqueParser = reserved lexer "opaque" >> return ()
 -- generate a qualifier, and apply it to the prefix. I.e. in (a -> b) we first
 -- parse a, then (-> b), and modify a by applying (-> b).
 typeParser :: Parser Type
-typeParser = undefined
--- typeParser = do
---     typs <- typeStartParser
---     mods <- typeEndParser
---     return $ mods typs
--- 
--- typeStartParser :: Parser [Type]
--- typeStartParser = mzero
---     <|> parenTypeParser
---     <|> single <$> arrayTypeParser
---     <|> single <$> enumTypeParser
---     <|> single <$> unionTypeParser
---     <|> single <$> structTypeParser
---     <|> single <$> bitfieldTypeParser
---     <|> single <$> primTypeParser
---     <|> single <$> aliasTypeParser
--- 
--- typeEndParser :: Parser ([Type] -> Type)
--- typeEndParser = foldr (flip c2) head <$> many (ptr <|> func)
---     where
---         ptr = do
---             llex $ char '*'
---             return mkPtr
---         func = do
---             llex $ string "->"
---             typ <- typeParser
---             return $ mkFun typ
---     
---         mkPtr :: [Type] -> Type
---         mkPtr [x] = RefType . Pointer $ x
---         mkPtr _   = error "Can not make pointer of argument head"
---         -- TODO reflect up to parser hierarchy
--- 
---         mkFun :: Type -> [Type] -> Type
---         mkFun r as = FunType $ Function as r
---         -- TODO #34 parse param names
--- 
---         -- TODO is this (=<=) in Control.Comonad ?
---         c2 :: ([b] -> c) -> ([a] -> b) -> [a] -> c
---         c2 g f = g . single . f
---             
--- 
--- -- This is not really a type, but the product used to express the argument to an uncurried function.
--- -- TODO support named arguments
--- parenTypeParser :: Parser [Type]
--- parenTypeParser = do
---     llex $ char '('
---     types <-  typeParser `sepBy` (llex $ char ',')
---     llex $ char ')'
---     return types  
+typeParser = do
+    typs <- typeStartParser
+    mods <- typeEndParser
+    return $ mods typs
+
+typeStartParser :: Parser [(Maybe Name,Type)]
+typeStartParser = mzero
+    <|> parenTypeParser
+    <|> (single.returnPair) <$> arrayTypeParser
+    <|> (single.returnPair) <$> enumTypeParser
+    <|> (single.returnPair) <$> unionTypeParser
+    <|> (single.returnPair) <$> structTypeParser
+    <|> (single.returnPair) <$> bitfieldTypeParser
+    <|> (single.returnPair) <$> primTypeParser
+    <|> (single.returnPair) <$> aliasTypeParser
+returnPair x = (Nothing,x)               
+
+typeEndParser :: Parser ([(Maybe Name, Type)] -> Type)
+typeEndParser = foldr comp noTypeEnd <$> many (ptr <|> func)
+    where
+        ptr = do
+            llex $ char '*'
+            return mkPtr
+        func = do
+            llex $ string "->"
+            typ <- typeParser
+            return $ mkFun typ
+
+        noTypeEnd :: [(Maybe Name, Type)] -> Type
+        noTypeEnd [(_,x)] = x
+        noTypeEnd _       = error "Unexpected argument head"
+  
+        mkPtr :: [(Maybe Name, Type)] -> Type
+        mkPtr [(_,x)] = RefType . Pointer $ x
+        mkPtr _       = error "Unexpected argument head"
+
+        mkFun :: Type -> [(Maybe Name, Type)] -> Type
+        mkFun r as = FunType $ Function as r        
+
+        -- TODO is this (=>=) in Control.Comonad ?
+        comp :: ([(Maybe x,a)] -> b) -> ([(Maybe x,b)] -> c) -> [(Maybe x,a)] -> c
+        comp g f = f . single . returnPair . g
+
+-- This is not really a type, but the product used to express the argument to an uncurried function.
+-- However, if it is just a one-tuple without a name, it will be treated as an ordinary type.
+-- That is (A) -> B is the same as A -> B.
+
+-- TODO support named arguments
+parenTypeParser :: Parser [(Maybe Name, Type)]
+parenTypeParser = do
+    llex $ char '('
+    types <-  maybeNameTypeParser `sepBy` (llex $ char ',')
+    llex $ char ')'
+    return $ types
 
 arrayTypeParser :: Parser Type
 arrayTypeParser = do
@@ -325,6 +331,8 @@ unameTypeParser = do
     typ <- typeParser
     return $ (name, typ)
 
+maybeNameTypeParser :: Parser (Maybe Name, Type)
+maybeNameTypeParser = try (fmap (first Just) unameTypeParser) <|> fmap returnPair typeParser
 
 -- Extra combinators, not exported
 occs p        = length <$> many p

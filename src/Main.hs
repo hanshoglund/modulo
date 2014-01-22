@@ -73,7 +73,7 @@ readPrimBool :: Maybe String -> ModOpt
 readPrimBool = LispPrimBool . (=<<) parsePrimTypeMaybe
 
 
-version = "modulo-1.6.1"
+version = "modulo-1.7.2"
 header  = "Usage: modulo [options]\n" ++
           "Usage: modulo [options] files...\n" ++
           "\n" ++
