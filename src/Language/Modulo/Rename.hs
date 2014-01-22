@@ -1,5 +1,5 @@
 
-{-# LANGUAGE DisambiguateRecordFields, TypeFamilies,
+{-# LANGUAGE DisambiguateRecordFields, TypeFamilies, OverloadedStrings, BangPatterns,
     StandaloneDeriving, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving #-}
 
 -------------------------------------------------------------------------------------
@@ -14,11 +14,15 @@
 -------------------------------------------------------------------------------------
 
 module Language.Modulo.Rename (
+        addParams,
         rename
   ) where
 
 import Control.Arrow
 import Control.Exception
+import Control.Monad.State
+import Data.Traversable
+import qualified Data.Char as Char
 import Data.List (isSuffixOf)
 import Data.Maybe (catMaybes)
 import Data.List.NonEmpty ( NonEmpty(..) )
@@ -30,6 +34,53 @@ import Language.Modulo.Util
 import Language.Modulo.Util.Unmangle (unmangle)
 
 import qualified Data.List.NonEmpty as NonEmpty
+
+-- | Add default parameter names to functions.
+--   (Replaces 'Nothing' with the unqualified type name).
+--
+--   Mainly useful for documentation.
+--
+addParams :: Module -> Module
+addParams mod@(Module n opt doc is ds) = Module n opt doc is (map (fmap decl) ds)
+    where
+        decl (FunctionDecl n t)  = FunctionDecl n (funType t)
+        decl x = x                                          
+        
+        funType (Function as r) = Function (firstComp disamb $ fmap funParam as) r
+
+        funParam (Nothing,AliasType n) = (Just $ nameEnd n,                  AliasType n)
+        funParam (Nothing,PrimType t)  = (Just $ Name $ firstLower $ (++ "_") $ show t, PrimType t)
+        funParam (n,t) = (n,t)
+        
+        nameEnd (QName _ n) = Name $ firstLower n
+        nameEnd (Name n)    = Name $ firstLower  n
+        firstLower [] = []
+        firstLower (x:xs) = Char.toLower x : xs
+
+-- type ParamNames = [Name]
+-- -- Monad for param names disambiguition
+-- type Param a = State ParamNames a
+-- param :: a -> Param a
+-- param = return
+-- getParam :: Param a -> a
+-- getParam = fst . (`runState` [])   
+
+disamb :: [Maybe Name] -> [Maybe Name]
+disamb = snd . List.mapAccumL getUnambName []
+    where
+        getUnambName !taken Nothing = (taken, Nothing) 
+        getUnambName !taken (Just x) = 
+            if not (x `elem` taken) then (x:taken, Just x)
+                else getUnambName taken (Just $ incName x)
+
+incName :: Name -> Name
+incName (QName m !n) = QName m (n ++ "_")
+incName (Name !n)    = Name (n ++ "_")
+
+-- TODO iso (uncurry zip) zip
+firstComp :: ([a] -> [a']) -> [(a,b)] -> [(a',b)]
+firstComp f = uncurry zip . first f . unzip
+
 
 -- |
 -- Rewrite all unqualified names as qualified names.

@@ -5,3 +5,4 @@
 :m + Language.Modulo.Util.Mangle
 :m + Language.Modulo.Util.Unmangle
 :set prompt "Modulo> "
+:set -hide-package monads-tf
