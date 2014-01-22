@@ -17,6 +17,7 @@ module Language.Modulo.Rename (
         rename
   ) where
 
+import Control.Arrow
 import Control.Exception
 import Data.List (isSuffixOf)
 import Data.Maybe (catMaybes)
@@ -59,7 +60,7 @@ rename deps mod@(Module doc n is ds) = Module doc n is (map (fmap renameDecl) ds
         renameRefType (Array t j) = Array (renameType t) j
         
         renameFunType :: FunType -> FunType
-        renameFunType (Function as r) = Function (fmap renameType as) (renameType r)
+        renameFunType (Function as r) = Function (fmap (second renameType) as) (renameType r)
         
         renameCompType :: CompType -> CompType
         renameCompType (Enum ns)     = Enum ns

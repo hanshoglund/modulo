@@ -128,6 +128,9 @@ newtype Doc = Doc { getDoc :: String }
 data Module 
     = Module 
       { 
+      -- TODO properties:
+        -- transient :: Bool (ignore last component in name for mangling)
+        -- visibility :: Public | Internal
       modDoc     :: Doc,
       modName    :: ModuleName,                   -- ^ Name of module
       modImports :: [(ModuleName, Maybe String)], -- ^ Imports with optional import conventions
@@ -237,7 +240,7 @@ data RefType
 
 -- | A function type.
 data FunType 
-    = Function [Type] Type -- ^ The C function type @Tn(T1, ... Tn-1)@.
+    = Function [(Maybe Name, Type)] Type -- ^ The C function type @Tn(T1, ... Tn-1)@.
     deriving (Eq, Show)
 
 data CompType

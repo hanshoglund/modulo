@@ -35,6 +35,7 @@ module Language.Modulo.Haskell (
   ) where
 
 import Data.Default
+import Data.Foldable (toList)
 import Data.Semigroup
 import Data.Char (chr)
 import Data.Text (pack)
@@ -202,7 +203,8 @@ convertFunType :: HaskellStyle -> FunType -> HsType
 convertFunType st = go
     where
         go (Function []     r) = {-(HsTyCon (UnQual "IO")) `HsTyApp`-} convertType st r
-        go (Function (t:ts) r) = convertType st t `HsTyFun` convertFunType st (Function ts r)
+        go (Function ((_,t):ts) r) = convertType st t `HsTyFun` convertFunType st (Function ts r)
+        -- TODO #34 use param names
 
 convertCompType :: HaskellStyle -> CompType -> HsType
 convertCompType st (Enum as)       = HsTyCon (UnQual "CInt")

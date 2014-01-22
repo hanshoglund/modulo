@@ -44,7 +44,9 @@ module Language.Modulo.C (
   ) where
 
 import Data.Default
+import Data.Foldable (toList)
 import Data.Semigroup
+import Control.Arrow
 
 import Language.Modulo
 import Language.Modulo.Util
@@ -452,12 +454,14 @@ convertFooter st mod = mempty
 flattenModule :: CStyle -> Module -> Module
 flattenModule st (Module doc n is ds) = Module doc n is (map (fmap $ flattenDecl st) ds)
 
+flattenDecl :: CStyle -> Decl -> Decl
 flattenDecl st (TypeDecl n t)      = TypeDecl (translType st n) (fmap (flattenType st) t)
 flattenDecl st (FunctionDecl n t)  = FunctionDecl (translFun st n) (flattenFunType st t)
 flattenDecl st (TagDecl t)         = TagDecl (flattenType st t)
 flattenDecl st (ConstDecl n v t)   = ConstDecl (translConst st n) v (flattenType st t)
 flattenDecl st (GlobalDecl n v t)  = GlobalDecl (translGlobal st n) v (flattenType st t)
 
+flattenType :: CStyle -> Type -> Type
 flattenType st (PrimType t)  = PrimType t
 flattenType st (AliasType n) = AliasType $ flattenAlias st n
 flattenType st (RefType t)   = RefType   $ flattenRefType st t
@@ -472,7 +476,7 @@ flattenRefType st (Pointer t) = Pointer (flattenType st t)
 flattenRefType st (Array t n) = Array (flattenType st t) n
 
 flattenFunType :: CStyle -> FunType -> FunType
-flattenFunType st (Function as r) = Function (fmap (flattenType st) as) (flattenType st r)
+flattenFunType st (Function as r) = Function (fmap (second $ flattenType st) as) (flattenType st r)
 
 flattenCompType :: CStyle -> CompType -> CompType
 flattenCompType st (Enum ns)     = Enum   $ fmap (translEnumField st) ns
@@ -655,7 +659,8 @@ convertFunType st (Function as r) = (typ, [CFunDeclr (Right (args, False)) [] de
     where
         (typ, decls) = convertType st r
         args :: [CDecl]
-        args    = map (\t -> declParam st Nothing t) as
+        args    = map (\(_,t) -> declParam st Nothing t) $ as
+        -- TODO #34 use name
 
 convertCompType :: CStyle -> CompType -> ([CTypeSpec], [CDerivedDeclr])
 convertCompType st (Enum as) = ([typ], [])

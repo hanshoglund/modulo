@@ -165,54 +165,61 @@ typeOpaqueParser = (opaqueParser >> return Nothing) <|> fmap Just typeParser
 opaqueParser :: Parser ()
 opaqueParser = reserved lexer "opaque" >> return ()
 
+-- To parse a type, we first parse all types whose syntax does not involve
+-- post-qualifiers (i.e. pointer and function), then parse the modifiers to
+-- generate a qualifier, and apply it to the prefix. I.e. in (a -> b) we first
+-- parse a, then (-> b), and modify a by applying (-> b).
 typeParser :: Parser Type
-typeParser = do
-    typs <- typeStartParser
-    mods <- typeEndParser
-    return $ mods typs
-
-typeStartParser :: Parser [Type]
-typeStartParser = mzero
-    <|> parenTypeParser
-    <|> single <$> arrayTypeParser
-    <|> single <$> enumTypeParser
-    <|> single <$> unionTypeParser
-    <|> single <$> structTypeParser
-    <|> single <$> bitfieldTypeParser
-    <|> single <$> primTypeParser
-    <|> single <$> aliasTypeParser
-
-typeEndParser :: Parser ([Type] -> Type)
-typeEndParser = foldr (flip c2) head <$> many (ptr <|> func)
-    where
-        ptr = do
-            llex $ char '*'
-            return mkPtr
-        func = do
-            llex $ string "->"
-            typ <- typeParser
-            return $ mkFun typ
-    
-        mkPtr :: [Type] -> Type
-        mkPtr [x] = RefType . Pointer $ x
-        mkPtr _   = error "Can not make pointer of argument head"
-        -- TODO reflect up to parser hierarchy
-
-        mkFun :: Type -> [Type] -> Type
-        mkFun r as = FunType $ Function as r
-
-        -- TODO is this (=<=) in Control.Comonad ?
-        c2 :: ([b] -> c) -> ([a] -> b) -> [a] -> c
-        c2 g f = g . single . f
-            
-
--- TODO support named arguments
-parenTypeParser :: Parser [Type]
-parenTypeParser = do
-    llex $ char '('
-    typ <-  typeParser `sepBy` (llex $ char ',')
-    llex $ char ')'
-    return typ
+typeParser = undefined
+-- typeParser = do
+--     typs <- typeStartParser
+--     mods <- typeEndParser
+--     return $ mods typs
+-- 
+-- typeStartParser :: Parser [Type]
+-- typeStartParser = mzero
+--     <|> parenTypeParser
+--     <|> single <$> arrayTypeParser
+--     <|> single <$> enumTypeParser
+--     <|> single <$> unionTypeParser
+--     <|> single <$> structTypeParser
+--     <|> single <$> bitfieldTypeParser
+--     <|> single <$> primTypeParser
+--     <|> single <$> aliasTypeParser
+-- 
+-- typeEndParser :: Parser ([Type] -> Type)
+-- typeEndParser = foldr (flip c2) head <$> many (ptr <|> func)
+--     where
+--         ptr = do
+--             llex $ char '*'
+--             return mkPtr
+--         func = do
+--             llex $ string "->"
+--             typ <- typeParser
+--             return $ mkFun typ
+--     
+--         mkPtr :: [Type] -> Type
+--         mkPtr [x] = RefType . Pointer $ x
+--         mkPtr _   = error "Can not make pointer of argument head"
+--         -- TODO reflect up to parser hierarchy
+-- 
+--         mkFun :: Type -> [Type] -> Type
+--         mkFun r as = FunType $ Function as r
+--         -- TODO #34 parse param names
+-- 
+--         -- TODO is this (=<=) in Control.Comonad ?
+--         c2 :: ([b] -> c) -> ([a] -> b) -> [a] -> c
+--         c2 g f = g . single . f
+--             
+-- 
+-- -- This is not really a type, but the product used to express the argument to an uncurried function.
+-- -- TODO support named arguments
+-- parenTypeParser :: Parser [Type]
+-- parenTypeParser = do
+--     llex $ char '('
+--     types <-  typeParser `sepBy` (llex $ char ',')
+--     llex $ char ')'
+--     return types  
 
 arrayTypeParser :: Parser Type
 arrayTypeParser = do

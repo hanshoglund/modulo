@@ -30,6 +30,7 @@ module Language.Modulo.Lisp (
   ) where
 
 import Data.Default
+import Data.Foldable (toList)
 import Data.Semigroup
 import Data.Char (chr)
 import Data.Text (pack)
@@ -170,7 +171,8 @@ declFun st n (Function as r) =
         ret         = convertType st r
         cname       = string $ convertCFunName (cStyle st) n
         argNames    = map (symbol . return . chr) [97..(97+25)]
-        argTypes    = map (convertType st) as                        
+        argTypes    = map (\(_,t) -> convertType st t) $ as
+        -- TODO #34 use names                        
         args        = map (\(n,t) -> list [n, t]) (zip argNames argTypes)
 
     

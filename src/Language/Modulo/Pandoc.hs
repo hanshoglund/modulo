@@ -103,8 +103,9 @@ convertDocDecl st doc decl = blocksToPandoc [
         isTypeDecl _              = False
 
         argNames (FunctionDecl _ ft) = argNames2 ft
-        argNames2 (Function as r) = fmap showT as ++ [showT r]
+        argNames2 (Function as r) = fmap (showT.snd) as ++ [showT r]
         showT = show . Lisp.convertType def
+        -- TODO #34 use name
 
     css = (".codeName", [], [("", "")])
     
