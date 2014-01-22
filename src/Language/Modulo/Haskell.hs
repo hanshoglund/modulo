@@ -100,7 +100,7 @@ renderModuleHaskellStyle :: HaskellStyle -> Module -> HsModule
 renderModuleHaskellStyle st = convertTopLevel st
 
 convertTopLevel :: HaskellStyle -> Module -> HsModule
-convertTopLevel st (Module doc n is ds) = 
+convertTopLevel st (Module n opt doc is ds) = 
     -- TODO docs
     -- TODO nice export spec (excluding opaque struct types etc)
     HsModule def (convertModule n) Nothing imps  decls

@@ -25,6 +25,7 @@ module Language.Modulo.Parse (
 import Control.Monad
 import Control.Arrow
 import Data.Monoid
+import Data.Default
 import Data.Maybe
 import Control.Applicative hiding ((<|>), optional, many)
 
@@ -96,7 +97,7 @@ modParser = do
     docDecls <- many docDeclParser
     llex $ char '}'
     
-    return $ Module doc name imps docDecls
+    return $ Module name def doc imps docDecls
 
 modNameParser :: Parser ModuleName
 modNameParser = do

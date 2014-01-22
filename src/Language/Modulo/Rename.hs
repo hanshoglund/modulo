@@ -41,7 +41,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 -- * Returned module has no Name constructors
 --
 rename :: [Module] -> Module -> Module
-rename deps mod@(Module doc n is ds) = Module doc n is (map (fmap renameDecl) ds) 
+rename deps mod@(Module n opt doc is ds) = Module n opt doc is (map (fmap renameDecl) ds) 
     where
         renameDecl (TypeDecl n t)      = TypeDecl (simplify $ qualify mod n) (fmap renameType t)
         renameDecl (FunctionDecl n t)  = FunctionDecl (simplify $ qualify mod n) (renameFunType t)

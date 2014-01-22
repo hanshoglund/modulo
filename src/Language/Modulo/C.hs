@@ -452,7 +452,7 @@ convertFooter st mod = mempty
 -- The module returned from this function will have no QName constructors.
 --
 flattenModule :: CStyle -> Module -> Module
-flattenModule st (Module doc n is ds) = Module doc n is (map (fmap $ flattenDecl st) ds)
+flattenModule st (Module n opt doc is ds) = Module n opt doc is (map (fmap $ flattenDecl st) ds)
 
 flattenDecl :: CStyle -> Decl -> Decl
 flattenDecl st (TypeDecl n t)      = TypeDecl (translType st n) (fmap (flattenType st) t)
@@ -512,12 +512,12 @@ mangleName p q (QName m n) = Name $ (p . concatMap unmangle . getModuleNameList 
 
 -- TODO use doc
 convertTopLevel :: CStyle -> Module -> CTranslUnit
-convertTopLevel st (Module doc n is ds) = CTranslUnit cds defInfo
+convertTopLevel st (Module n opt doc is ds) = CTranslUnit cds defInfo
     where
         cds = map (CDeclExt . convertDecl st . snd) ds
 
 convertTopLevelComm :: CStyle -> Module -> [(String, CDecl)]
-convertTopLevelComm st (Module doc n is ds) = fmap (first getDoc . second (convertDecl st)) ds
+convertTopLevelComm st (Module n opt doc is ds) = fmap (first getDoc . second (convertDecl st)) ds
     where
         first f = swap . fmap f . swap
         second = fmap

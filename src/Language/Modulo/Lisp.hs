@@ -104,7 +104,7 @@ convertPackage :: LispStyle -> [Lisp]
 convertPackage st = [list [symbol "in-package", keyword (package st)]]
 
 convertTopLevel :: LispStyle -> Module -> [Lisp]
-convertTopLevel st (Module doc n is ds) = cds
+convertTopLevel st (Module n opt doc is ds) = cds
     where
         cds = concatMap (convertDecl st . snd) ds
 

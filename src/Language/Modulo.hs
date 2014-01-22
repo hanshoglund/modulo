@@ -81,6 +81,7 @@
 module Language.Modulo (
         -- ** Modules
         Module(..),
+        ModuleOptions(..),
         ModuleName(..),
         toModuleName,
         getModuleNameList,
@@ -106,6 +107,7 @@ module Language.Modulo (
   ) where
 
 import Data.Ord
+import Data.Default
 import Data.String
 import Numeric.Natural
 import Foreign.C.Types      
@@ -119,6 +121,15 @@ import qualified Data.List.NonEmpty as NonEmpty
 newtype Doc = Doc { getDoc :: String }
     deriving (Eq, Ord, Show, IsString)
 
+data ModuleOptions = ModuleOptions {
+        propTransient :: Bool -- ^ If true, this module does not incur any C prefix.
+    }
+    deriving (Eq, Ord, Show)
+
+instance Default ModuleOptions where
+    def = ModuleOptions { propTransient = False }
+
+
 -- | 
 -- A module is a named container of imports and declarations.
 --
@@ -131,8 +142,9 @@ data Module
       -- TODO properties:
         -- transient :: Bool (ignore last component in name for mangling)
         -- visibility :: Public | Internal
-      modDoc     :: Doc,
       modName    :: ModuleName,                   -- ^ Name of module
+      modOptions :: ModuleOptions,                -- ^ Module options.
+      modDoc     :: Doc,                          -- ^ Module documentation.
       modImports :: [(ModuleName, Maybe String)], -- ^ Imports with optional import conventions
       modDecls   :: [(Doc, Decl)]                 -- ^ List of declarations
       }
