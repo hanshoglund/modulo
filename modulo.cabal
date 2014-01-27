@@ -36,7 +36,7 @@ library
         atto-lisp,
 
         pandoc-types    == 1.10,
-        pandoc          == 1.11.1,
+        -- pandoc          == 1.11.1,
         process,
         directory
     hs-source-dirs: src
@@ -47,7 +47,7 @@ library
         Language.Modulo.Lisp
         Language.Modulo.Haskell
         Language.Modulo.JavaScript
-        Language.Modulo.Pandoc
+        -- Language.Modulo.Pandoc
 
         Language.Modulo.Load
         Language.Modulo.Parse
