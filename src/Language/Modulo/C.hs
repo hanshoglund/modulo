@@ -103,7 +103,8 @@ data CStyle =
         -- Functions and values
         constMangler    :: [String] -> String,   -- ^ Mangler for constant values
         globalMangler   :: [String] -> String,   -- ^ Mangler for global variables
-        funcMangler :: [String] -> String    -- ^ Mangler for global functions
+        funcMangler :: [String] -> String,   -- ^ Mangler for global functions
+        funcAttr    :: Maybe String
 
         -- Options
         --  Wrap in extern C block
@@ -175,7 +176,8 @@ stdStyle = CStyle
                         
     constMangler        = (concatSep "_" . fmap toLowerString),
     globalMangler       = (concatSep "_" . fmap toLowerString),
-    funcMangler         = (concatSep "_" . fmap toLowerString)
+    funcMangler         = (concatSep "_" . fmap toLowerString),
+    funcAttr        = Nothing
     }
 
 -- |
@@ -207,6 +209,7 @@ cairoStyle = CStyle
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
+    Nothing
 
 
 -- |
@@ -238,6 +241,7 @@ gtkStyle = CStyle
     (concatSep "_")
     (concatSep "_")
     (concatSep "_")
+    Nothing
 
 -- |
 -- Style used in Apple Frameworks.
@@ -269,6 +273,8 @@ appleStyle = CStyle
     (withPrefix "k" . capitalCase)
     (withPrefix "g" . capitalCase)
     capitalCase
+    Nothing
+
 --
 -- |
 -- Style similar to Haskell conventions.
@@ -300,6 +306,7 @@ haskellStyle = CStyle
     mixedCase
     mixedCase
     mixedCase
+    Nothing
 
 
 -------------------------------------------------------------------------------------
@@ -562,7 +569,10 @@ declFun :: CStyle -> Name -> FunType -> CDecl
 declFun st n t = CDecl spec decList defInfo
     where
         (typ, decl) = convertFunType st t
-        spec    = [] ++ map CTypeSpec typ
+        prefix  = case funcAttr st of
+            Nothing   -> []
+            Just attrName -> [CTypeQual (CAttrQual $ CAttr (ident attrName) [] defInfo)]
+        spec    = prefix ++ map CTypeSpec typ
         declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
 
@@ -719,8 +729,8 @@ paramDeclr declr = (Just declr, Nothing, Nothing)
 
 -- | Used for all NodeInfo values in generated code
 defInfo :: NodeInfo
-defInfo = error "Can not read nodeInfo"
--- defInfo = OnlyPos $ Position undefined 0 0
+-- defInfo = error "Can not read nodeInfo"
+defInfo = OnlyPos nopos (nopos, 0)
 
 notSupported x = error $ "Not supported yet: " ++ x
 
@@ -765,4 +775,19 @@ deriving instance Show CEnum
 deriving instance Show CStructUnion
 deriving instance Show CStructTag
 -}
+
+-- foo = CDecl 
+--     [
+--         -- CStorageSpec (CExtern defInfo),
+--         CTypeQual (CAttrQual $ CAttr (ident "foobar") [] defInfo),
+--         CTypeSpec (CVoidType defInfo)
+--         
+--         ] 
+--     [
+--         (
+--         Just (CDeclr (Just $ ident "foo") [CFunDeclr (Right ([],False)) [] defInfo] Nothing [] defInfo),
+--         Nothing,
+--         Nothing
+--         )
+--     ] defInfo
 
