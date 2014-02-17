@@ -104,7 +104,7 @@ data CStyle =
         constMangler    :: [String] -> String,   -- ^ Mangler for constant values
         globalMangler   :: [String] -> String,   -- ^ Mangler for global variables
         funcMangler :: [String] -> String,   -- ^ Mangler for global functions
-        funcAttr    :: Maybe String
+        funcAttr    :: Maybe (String, String)
 
         -- Options
         --  Wrap in extern C block
@@ -571,7 +571,7 @@ declFun st n t = CDecl spec decList defInfo
         (typ, decl) = convertFunType st t
         prefix  = case funcAttr st of
             Nothing   -> []
-            Just attrName -> [CTypeQual (CAttrQual $ CAttr (ident attrName) [] defInfo)]
+            Just (attrName,attrValue) -> [CTypeQual (CAttrQual $ CAttr (ident attrName) [CVar (ident attrValue) defInfo] defInfo)]
         spec    = prefix ++ map CTypeSpec typ
         declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
