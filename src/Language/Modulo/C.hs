@@ -41,6 +41,7 @@ module Language.Modulo.C (
         renderModuleStyle,      
         
         printModuleComm,
+        printModuleStyleComm,
   ) where
 
 import Data.Default
@@ -104,6 +105,8 @@ data CStyle =
         constMangler    :: [String] -> String,   -- ^ Mangler for constant values
         globalMangler   :: [String] -> String,   -- ^ Mangler for global variables
         funcMangler :: [String] -> String,   -- ^ Mangler for global functions
+
+        -- TODO second component never used
         funcAttr    :: Maybe (String, String)
 
         -- Options
@@ -571,7 +574,7 @@ declFun st n t = CDecl spec decList defInfo
         (typ, decl) = convertFunType st t
         prefix  = case funcAttr st of
             Nothing   -> []
-            Just (attrName,attrValue) -> [CTypeQual (CAttrQual $ CAttr (ident attrName) [CVar (ident attrValue) defInfo] defInfo)]
+            Just (attrName,attrValue) -> [CTypeQual (CAttrQual $ CAttr (ident attrName) [] defInfo)]
         spec    = prefix ++ map CTypeSpec typ
         declr   = CDeclr (Just $ identName n) decl Nothing [] defInfo
         decList = [topLevelDeclr declr]
